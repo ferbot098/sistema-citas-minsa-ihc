@@ -18,6 +18,7 @@ import {
     getMedicamentos,
     crearMedicamento,
     cancelarCita,
+    crearHorario,
     logout
 } from './services/apiClient.js';
 import { initAccessibility, announce, escapeHtml } from './shared/accessibility.js';
@@ -63,6 +64,7 @@ const estado = {
     especialidadesCatalogo: [],
     hospitales: [],
     medicamentos: [],
+    horariosAdmin: [],
     filtros: { periodo: '', especialidad: '' },
     charts: {},
     citaCancelar: null
@@ -1032,6 +1034,194 @@ async function cargarMedicamentos(anunciar = true) {
 }
 
 /**
+ * Muestra un aviso en la sección de horarios (admin).
+ * @param {string} mensaje Texto.
+ * @param {'info'|'success'|'error'|'warning'} [tipo='info'] Tipo visual.
+ * @returns {void}
+ */
+function mostrarAvisoHorariosAdmin(mensaje, tipo = 'info') {
+    const contenedor = document.getElementById('horarios-admin-alert');
+    const texto = document.getElementById('horarios-admin-alert-texto');
+    contenedor.className = `alert alert-${tipo === 'error' ? 'error' : tipo}`;
+    texto.textContent = mensaje;
+    contenedor.hidden = false;
+    announce(mensaje, tipo === 'error' ? 'assertive' : 'polite');
+}
+
+/**
+ * Renderiza la tabla de horarios registrados (admin).
+ * @returns {void}
+ */
+function renderHorariosAdmin() {
+    const contenedor = document.getElementById('horarios-admin-tabla-contenedor');
+    const vacio = document.getElementById('horarios-admin-empty');
+    const cuerpo = document.getElementById('cuerpo-horarios-admin');
+
+    document.getElementById('caption-horarios-admin').textContent =
+        `Bloques horarios disponibles para reserva (${estado.horariosAdmin.length} registros)`;
+
+    if (estado.horariosAdmin.length === 0) {
+        cuerpo.innerHTML = '';
+        contenedor.hidden = true;
+        vacio.hidden = false;
+        return;
+    }
+
+    vacio.hidden = true;
+    contenedor.hidden = false;
+
+    cuerpo.innerHTML = estado.horariosAdmin.map((horario) => {
+        const disponible = Number(horario.disponible) === 1;
+        const estadoHtml = disponible
+            ? '<span class="state state--atendida"><span class="state-icon" aria-hidden="true">✔</span>Disponible</span>'
+            : '<span class="state state--cancelada"><span class="state-icon" aria-hidden="true">●</span>Ocupado</span>';
+        const medico = horario.medico_nombre || `ID ${horario.medico_id}`;
+        const especialidad = horario.especialidad || '—';
+        const hospital = horario.hospital || '—';
+        return `
+            <tr>
+                <th scope="row">${escapeHtml(medico)}</th>
+                <td>${escapeHtml(especialidad)}</td>
+                <td>${escapeHtml(hospital)}</td>
+                <td>${escapeHtml(formatFecha(horario.fecha))}</td>
+                <td>${escapeHtml(horario.hora)}</td>
+                <td>${estadoHtml}</td>
+            </tr>
+        `;
+    }).join('');
+}
+
+/**
+ * Carga los horarios registrados desde la API (para admin).
+ * @param {boolean} [anunciar=true] Si debe anunciar el resultado.
+ * @returns {Promise<void>}
+ */
+async function cargarHorariosAdmin(anunciar = true) {
+    const cargando = document.getElementById('horarios-admin-loading');
+    const contenedor = document.getElementById('horarios-admin-tabla-contenedor');
+    const vacio = document.getElementById('horarios-admin-empty');
+    cargando.hidden = false;
+    contenedor.hidden = true;
+    vacio.hidden = true;
+    document.getElementById('horarios-admin-alert').hidden = true;
+
+    try {
+        // Usamos getDoctores sin filtros para obtener todos los médicos con sus horarios
+        const doctores = await getDoctores();
+        const horarios = [];
+        doctores.forEach((doctor) => {
+            (doctor.horarios || []).forEach((h) => {
+                horarios.push({
+                    ...h,
+                    medico_id: doctor.id,
+                    medico_nombre: doctor.nombre,
+                    medico_cmp: doctor.cmp,
+                    especialidad: doctor.especialidad,
+                    hospital: doctor.hospital
+                });
+            });
+        });
+        estado.horariosAdmin = horarios;
+        renderHorariosAdmin();
+        if (anunciar) {
+            announce(`Horarios actualizados. ${estado.horariosAdmin.length} bloques registrados.`, 'polite');
+        }
+    } catch (error) {
+        mostrarAvisoHorariosAdmin(error.message || 'No se pudieron cargar los horarios.', 'error');
+        vacio.hidden = false;
+    } finally {
+        cargando.hidden = true;
+    }
+}
+
+/**
+ * Carga los médicos en el selector del formulario de horarios (admin).
+ * @returns {Promise<void>}
+ */
+async function cargarMedicosParaHorarios() {
+    try {
+        const doctores = await getDoctores();
+        const select = document.getElementById('horario-admin-medico');
+        if (select) {
+            select.innerHTML = '<option value="">Seleccione un médico…</option>' +
+                doctores.map((doctor) => `
+                    <option value="${doctor.id}">${escapeHtml(doctor.nombre)} (${escapeHtml(doctor.cmp)}) · ${escapeHtml(doctor.especialidad)}</option>
+                `).join('');
+        }
+    } catch (error) {
+        mostrarAvisoHorariosAdmin(error.message || 'No se pudo cargar la lista de médicos.', 'error');
+    }
+}
+
+/**
+ * Registra un nuevo bloque horario desde el dashboard (admin).
+ * @param {SubmitEvent} event Evento de envío.
+ * @returns {Promise<void>}
+ */
+async function enviarHorarioAdmin(event) {
+    event.preventDefault();
+
+    const medico = document.getElementById('horario-admin-medico');
+    const fecha = document.getElementById('horario-admin-fecha');
+    const hora = document.getElementById('horario-admin-hora');
+
+    const validaciones = [
+        { campo: medico, valido: medico.value !== '', mensaje: 'Seleccione un médico.' },
+        { campo: fecha, valido: fecha.value !== '', mensaje: 'Seleccione la fecha.' },
+        { campo: hora, valido: hora.value !== '', mensaje: 'Seleccione la hora.' }
+    ];
+
+    validaciones.forEach((item) => marcarInvalido(item.campo, !item.valido));
+    const primerError = validaciones.find((item) => !item.valido);
+    if (primerError) {
+        mostrarAvisoHorariosAdmin(primerError.mensaje, 'error');
+        primerError.campo.focus();
+        return;
+    }
+
+    const hoy = new Date();
+    const fechaElegida = new Date(`${fecha.value}T00:00:00`);
+    const hoySinHora = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+    if (Number.isNaN(fechaElegida.getTime()) || fechaElegida < hoySinHora) {
+        mostrarAvisoHorariosAdmin('La fecha del bloque debe ser hoy o una fecha futura.', 'error');
+        fecha.focus();
+        return;
+    }
+
+    const boton = document.getElementById('btn-crear-horario-admin');
+    boton.disabled = true;
+    boton.setAttribute('aria-busy', 'true');
+    boton.textContent = 'Registrando…';
+
+    try {
+        // Convertir hora 24h a formato 12h para el backend
+        const [h, m] = hora.value.split(':').map(Number);
+        const periodo = h >= 12 ? 'PM' : 'AM';
+        const hora12 = h % 12 === 0 ? 12 : h % 12;
+        const horaFormateada = `${String(hora12).padStart(2, '0')}:${String(m).padStart(2, '0')} ${periodo}`;
+
+        await crearHorario({
+            medicoId: Number(medico.value),
+            fecha: fecha.value,
+            hora: horaFormateada
+        });
+        mostrarAvisoHorariosAdmin(
+            `Bloque horario registrado para ${medico.options[medico.selectedIndex].text} el ${formatFecha(fecha.value)} a las ${horaFormateada}.`,
+            'success'
+        );
+        document.getElementById('form-horario-admin').reset();
+        validaciones.forEach((item) => marcarInvalido(item.campo, false));
+        await cargarHorariosAdmin(false);
+    } catch (error) {
+        mostrarAvisoHorariosAdmin(error.message || 'No se pudo registrar el horario.', 'error');
+    } finally {
+        boton.disabled = false;
+        boton.removeAttribute('aria-busy');
+        boton.textContent = 'Registrar horario';
+    }
+}
+
+/**
  * Muestra u oculta los campos exclusivos del rol EMPLEADO.
  * @returns {void}
  */
@@ -1364,6 +1554,7 @@ function conectarEventos() {
     document.getElementById('btn-recargar-usuarios').addEventListener('click', () => cargarUsuarios(true));
     document.getElementById('btn-recargar-hospitales').addEventListener('click', () => cargarHospitales(true));
     document.getElementById('btn-recargar-medicamentos').addEventListener('click', () => cargarMedicamentos(true));
+    document.getElementById('btn-recargar-horarios-admin').addEventListener('click', () => cargarHorariosAdmin(true));
 
     document.getElementById('cuerpo-citas-admin').addEventListener('click', (event) => {
         const boton = event.target.closest('button[data-accion="cancelar"]');
@@ -1380,6 +1571,7 @@ function conectarEventos() {
     document.getElementById('form-staff').addEventListener('submit', enviarStaff);
     document.getElementById('form-hospital').addEventListener('submit', enviarHospital);
     document.getElementById('form-medicamento').addEventListener('submit', enviarMedicamento);
+    document.getElementById('form-horario-admin').addEventListener('submit', enviarHorarioAdmin);
     document.getElementById('form-cancelar-dashboard').addEventListener('submit', enviarCancelacion);
 
     document.querySelectorAll('[data-cerrar-dialog]').forEach((boton) => {
@@ -1441,12 +1633,14 @@ async function iniciar() {
     observarContraste();
 
     await cargarCatalogos();
+    await cargarMedicosParaHorarios();
     await Promise.all([
         cargarIndicadores(false),
         cargarCitas(false),
         cargarUsuarios(false),
         cargarHospitales(false),
-        cargarMedicamentos(false)
+        cargarMedicamentos(false),
+        cargarHorariosAdmin(false)
     ]);
     announce(`Dashboard administrativo cargado. Bienvenido, ${usuario.nombres}.`, 'polite');
 }

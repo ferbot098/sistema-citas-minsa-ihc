@@ -57,6 +57,7 @@
                     <li><a href="#personal">Personal</a></li>
                     <li><a href="#lugares">Lugares</a></li>
                     <li><a href="#medicamentos">Medicamentos</a></li>
+                    <li><a href="#horarios">Horarios</a></li>
                     <li><a href="Minsa.html">Portal paciente</a></li>
                     <li><a href="index.html">Inicio</a></li>
                 </ul>
@@ -496,6 +497,71 @@
                     </div>
                 </div>
             </section>
+
+            <section id="horarios" class="section" aria-labelledby="titulo-horarios-admin">
+                <div class="card">
+                    <div class="card-head">
+                        <div>
+                            <p class="eyebrow">Gestión de disponibilidad</p>
+                            <h2 id="titulo-horarios-admin">Horarios disponibles (Administrador)</h2>
+                            <p class="card-subtitle">Asigne bloques de atención a los médicos registrados para que los pacientes puedan reservar.</p>
+                        </div>
+                        <button type="button" id="btn-recargar-horarios-admin" class="btn btn-secondary btn-small">Actualizar horarios</button>
+                    </div>
+
+                    <div id="horarios-admin-alert" class="alert alert-info" role="status" hidden>
+                        <span class="alert-icon" aria-hidden="true">ℹ️</span>
+                        <p id="horarios-admin-alert-texto"></p>
+                    </div>
+
+                    <h3>Registrar nuevo bloque horario</h3>
+                    <form id="form-horario-admin" class="form-grid" novalidate>
+                        <div class="field">
+                            <label for="horario-admin-medico">Médico</label>
+                            <select class="form-select" id="horario-admin-medico" required aria-describedby="ayuda-horario-admin-medico">
+                                <option value="">Seleccione un médico…</option>
+                            </select>
+                            <p id="ayuda-horario-admin-medico" class="help">Médicos registrados en el sistema.</p>
+                        </div>
+                        <div class="field">
+                            <label for="horario-admin-fecha">Fecha</label>
+                            <input class="form-control" type="date" id="horario-admin-fecha" required aria-describedby="ayuda-horario-admin-fecha">
+                            <p id="ayuda-horario-admin-fecha" class="help">Fecha de la atención (hoy o futuro).</p>
+                        </div>
+                        <div class="field">
+                            <label for="horario-admin-hora">Hora de inicio</label>
+                            <input class="form-control" type="time" id="horario-admin-hora" required aria-describedby="ayuda-horario-admin-hora">
+                            <p id="ayuda-horario-admin-hora" class="help">Hora en formato 24h, se guardará como bloque disponible.</p>
+                        </div>
+                        <div class="field field-full">
+                            <button type="submit" id="btn-crear-horario-admin" class="btn btn-primary">Registrar horario</button>
+                        </div>
+                    </form>
+
+                    <hr class="divider">
+                    <h3>Bloques horarios registrados</h3>
+                    <div id="horarios-admin-loading" class="loading-state">
+                        <span class="loading-spinner" aria-hidden="true"></span> Cargando horarios…
+                    </div>
+                    <p id="horarios-admin-empty" class="empty-state" hidden>No hay bloques horarios registrados.</p>
+                    <div id="horarios-admin-tabla-contenedor" class="table-responsive" hidden>
+                        <table class="data-table">
+                            <caption id="caption-horarios-admin">Bloques horarios disponibles para reserva</caption>
+                            <thead>
+                                <tr>
+                                    <th scope="col">Médico</th>
+                                    <th scope="col">Especialidad</th>
+                                    <th scope="col">Hospital</th>
+                                    <th scope="col">Fecha</th>
+                                    <th scope="col">Hora</th>
+                                    <th scope="col">Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cuerpo-horarios-admin"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
         </div>
     </main>
 
@@ -537,6 +603,8 @@
                     <li><a href="#indicadores">Indicadores</a></li>
                     <li><a href="#citas">Citas</a></li>
                     <li><a href="#personal">Personal</a></li>
+                    <li><a href="#lugares">Lugares</a></li>
+                    <li><a href="#horarios">Horarios</a></li>
                 </ul>
             </div>
             <div>

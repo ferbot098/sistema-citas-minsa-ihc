@@ -782,7 +782,11 @@ async function nuevaReserva() {
  * @returns {void}
  */
 function conectarEventos() {
-    document.getElementById('lista-hospitales').addEventListener('change', (event) => {
+    const listaHospitales = document.getElementById('lista-hospitales');
+    const listaEspecialidades = document.getElementById('lista-especialidades');
+    const listaMedicos = document.getElementById('lista-medicos');
+
+    function handleHospitalSelection(event) {
         const input = event.target.closest('input[name="hospital"]');
         if (!input) {
             return;
@@ -792,13 +796,84 @@ function conectarEventos() {
         estado.especialidad = null;
         estado.medicos = [];
         estado.horario = null;
-        marcarSeleccion(document.getElementById('lista-hospitales'));
+        marcarSeleccion(listaHospitales);
+        document.getElementById('btn-paso-1-continuar').disabled = !hospital;
         document.getElementById('btn-paso-2-continuar').disabled = true;
         document.getElementById('btn-paso-3-continuar').disabled = true;
         if (hospital) {
             announce(`Hospital seleccionado: ${hospital.nombre}.`, 'polite');
         }
+    }
+
+    function handleEspecialidadSelection(event) {
+        const input = event.target.closest('input[name="especialidad"]');
+        if (!input || !estado.hospital) {
+            return;
+        }
+        const especialidad = estado.hospital.especialidades.find((item) => item.id === Number(input.value)) || null;
+        estado.especialidad = especialidad;
+        estado.medicos = [];
+        estado.horario = null;
+        marcarSeleccion(listaEspecialidades);
+        document.getElementById('btn-paso-2-continuar').disabled = !especialidad;
+        document.getElementById('btn-paso-3-continuar').disabled = true;
+        if (especialidad) {
+            announce(`Especialidad seleccionada: ${especialidad.nombre}.`, 'polite');
+        }
+    }
+
+    function handleHorarioSelection(event) {
+        const input = event.target.closest('input[name="horario"]');
+        if (!input) {
+            return;
+        }
+        const horarioId = Number(input.value);
+        const medico = estado.medicos.find((item) => (item.horarios || []).some((hr) => Number(hr.id) === horarioId));
+        const horario = medico ? (medico.horarios || []).find((hr) => Number(hr.id) === horarioId) : null;
+        estado.horario = horario && medico ? { ...horario, medico } : null;
+        document.querySelectorAll('#lista-medicos .slot-card').forEach((tarjeta) => {
+            const radio = tarjeta.querySelector('input[type="radio"]');
+            tarjeta.classList.toggle('is-selected', Boolean(radio && radio.checked));
+        });
+        document.getElementById('btn-paso-3-continuar').disabled = !estado.horario;
+        if (estado.horario && medico) {
+            announce(`Horario seleccionado: ${formatFecha(estado.horario.dia)} a las ${estado.horario.hora} con ${medico.nombre}.`, 'polite');
+        }
+    }
+
+    // Delegación de eventos: click en la tarjeta (label) + change en el radio
+    listaHospitales.addEventListener('click', (event) => {
+        const label = event.target.closest('.choice-card');
+        if (!label) return;
+        const input = label.querySelector('input[name="hospital"]');
+        if (input && !input.disabled) {
+            input.checked = true;
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+        }
     });
+    listaHospitales.addEventListener('change', handleHospitalSelection);
+
+    listaEspecialidades.addEventListener('click', (event) => {
+        const label = event.target.closest('.choice-card');
+        if (!label) return;
+        const input = label.querySelector('input[name="especialidad"]');
+        if (input && !input.disabled) {
+            input.checked = true;
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+    });
+    listaEspecialidades.addEventListener('change', handleEspecialidadSelection);
+
+    listaMedicos.addEventListener('click', (event) => {
+        const label = event.target.closest('.slot-card');
+        if (!label) return;
+        const input = label.querySelector('input[name="horario"]');
+        if (input && !input.disabled) {
+            input.checked = true;
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+    });
+    listaMedicos.addEventListener('change', handleHorarioSelection);
 
     document.getElementById('btn-paso-1-continuar').addEventListener('click', () => {
         if (!estado.hospital) {
@@ -809,22 +884,6 @@ function conectarEventos() {
         renderEspecialidades();
         irAPaso(2);
         announce('Seleccione una especialidad disponible en el hospital elegido.', 'polite');
-    });
-
-    document.getElementById('lista-especialidades').addEventListener('change', (event) => {
-        const input = event.target.closest('input[name="especialidad"]');
-        if (!input || !estado.hospital) {
-            return;
-        }
-        const especialidad = estado.hospital.especialidades.find((item) => item.id === Number(input.value)) || null;
-        estado.especialidad = especialidad;
-        estado.medicos = [];
-        estado.horario = null;
-        marcarSeleccion(document.getElementById('lista-especialidades'));
-        document.getElementById('btn-paso-3-continuar').disabled = true;
-        if (especialidad) {
-            announce(`Especialidad seleccionada: ${especialidad.nombre}.`, 'polite');
-        }
     });
 
     document.getElementById('btn-paso-2-volver').addEventListener('click', () => {
@@ -841,25 +900,6 @@ function conectarEventos() {
         await cargarMedicos();
         irAPaso(3);
         announce('Seleccione un médico y un horario disponible.', 'polite');
-    });
-
-    document.getElementById('lista-medicos').addEventListener('change', (event) => {
-        const input = event.target.closest('input[name="horario"]');
-        if (!input) {
-            return;
-        }
-        const horarioId = Number(input.value);
-        const medico = estado.medicos.find((item) => (item.horarios || []).some((hr) => Number(hr.id) === horarioId));
-        const horario = medico ? (medico.horarios || []).find((hr) => Number(hr.id) === horarioId) : null;
-        estado.horario = horario && medico ? { ...horario, medico } : null;
-        document.querySelectorAll('#lista-medicos .slot-card').forEach((tarjeta) => {
-            const radio = tarjeta.querySelector('input[type="radio"]');
-            tarjeta.classList.toggle('is-selected', Boolean(radio && radio.checked));
-        });
-        document.getElementById('btn-paso-3-continuar').disabled = !estado.horario;
-        if (estado.horario) {
-            announce(`Horario seleccionado: ${formatFecha(estado.horario.dia)} a las ${estado.horario.hora} con ${medico.nombre}.`, 'polite');
-        }
     });
 
     document.getElementById('btn-paso-3-volver').addEventListener('click', () => {

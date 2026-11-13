@@ -127,13 +127,6 @@ export const DEMO_USERS = Object.freeze([
         descripcion: 'Historial, reserva, reprogramación y cancelación.'
     },
     {
-        etiqueta: 'Médico Dr. Mendoza',
-        rol: 'EMPLEADO',
-        identificador: 'cmendoza@minsa.gob.pe',
-        password: 'med123',
-        descripcion: 'Agenda asignada y registro de atención clínica.'
-    },
-    {
         etiqueta: 'Administrador MINSA',
         rol: 'ADMIN',
         identificador: 'admin@minsa.gob.pe',

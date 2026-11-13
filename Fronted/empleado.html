@@ -19,6 +19,9 @@
         } catch (error) {
             /* Sin preferencias guardadas se usa el tema institucional por defecto. */
         }
+        // Redirigir al login: el acceso directo al portal de personal está deshabilitado.
+        // Los endpoints de API (ej. GET /api/diagnosticos/cita/:citaId) siguen funcionando para el paciente.
+        window.location.replace('login.html?redir=empleado');
     </script>
 </head>
 <body>
