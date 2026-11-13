@@ -1,6 +1,11 @@
 /**
  * @file Dashboard administrativo del Sistema Inclusivo de Citas Médicas MINSA.
+ * @description Consume los indicadores, citas, usuarios, hospitales, medicamentos y horarios
+ * desde la API REST. Incluye guardia de rol ADMIN, navegación por pestañas accesibles
+ * (WCAG 2.1 AA/AAA) y sincronización con Chart.js.
+ * @module dashboard
  */
+
 import {
     requireRole,
     getIndicadores,
@@ -19,27 +24,17 @@ import {
 import { initAccessibility, announce, escapeHtml } from './shared/accessibility.js';
 
 // ---- Guardia de ruta estricta ----
-(function () {
-    const token = (() => {
-        try {
-            const raw = localStorage.getItem('minsa_session');
-            if (!raw) return null;
-            const parsed = JSON.parse(raw);
-            return parsed && typeof parsed.token === 'string' ? parsed.token : null;
-        } catch {
-            return null;
-        }
-    })();
-    const usuario = (() => {
-        try {
-            const raw = localStorage.getItem('minsa_session');
-            if (!raw) return null;
-            const parsed = JSON.parse(raw);
-            return parsed && parsed.usuario ? parsed.usuario : null;
-        } catch {
-            return null;
-        }
-    })();
+(function validarAccesoAdmin() {
+    let session = null;
+    try {
+        const raw = localStorage.getItem('minsa_session');
+        session = raw ? JSON.parse(raw) : null;
+    } catch {
+        session = null;
+    }
+
+    const token = session && typeof session.token === 'string' ? session.token : null;
+    const usuario = session && session.usuario ? session.usuario : null;
 
     if (!token || !usuario || usuario.rol !== 'ADMIN') {
         window.location.replace('login.html');
@@ -50,6 +45,10 @@ import { initAccessibility, announce, escapeHtml } from './shared/accessibility.
 // ---- Gestor de pestañas del dashboard ----
 const TAB_IDS = ['indicadores', 'citas', 'personal', 'lugares', 'medicamentos', 'horarios'];
 
+/**
+ * Inicializa la navegación accesible por pestañas (tablist / tabpanel).
+ * @returns {void}
+ */
 function initDashboardTabs() {
     const tabbar = document.querySelector('.dashboard-tabbar');
     if (!tabbar) return;
@@ -59,7 +58,15 @@ function initDashboardTabs() {
         .map((id) => document.getElementById(`panel-${id}`))
         .filter(Boolean);
 
-    function activateTab(tab) {
+    if (tabs.length === 0) return;
+
+    /**
+     * Activa una pestaña y muestra su panel asociado.
+     * @param {HTMLButtonElement} tab Pestaña seleccionada.
+     * @param {boolean} [enfocar=true] Si debe mover el foco al panel.
+     * @returns {void}
+     */
+    function activateTab(tab, enfocar = true) {
         const targetId = tab.getAttribute('aria-controls');
         tabs.forEach((t) => {
             const isActive = t === tab;
@@ -71,15 +78,17 @@ function initDashboardTabs() {
             panel.hidden = !isActive;
             panel.classList.toggle('is-active', isActive);
         });
-        const target = document.getElementById(targetId);
-        if (target) {
-            target.focus({ preventScroll: true });
+        if (enfocar) {
+            const target = document.getElementById(targetId);
+            if (target) {
+                target.focus({ preventScroll: true });
+            }
+            announce(`Sección ${tab.textContent.trim()} cargada.`, 'polite');
         }
-        announce(`Sección ${tab.textContent.trim()} cargada.`, 'polite');
     }
 
     tabs.forEach((tab) => {
-        tab.addEventListener('click', () => activateTab(tab));
+        tab.addEventListener('click', () => activateTab(tab, true));
         tab.addEventListener('keydown', (event) => {
             const current = tabs.indexOf(tab);
             let next;
@@ -100,12 +109,12 @@ function initDashboardTabs() {
                     return;
             }
             event.preventDefault();
-            activateTab(tabs[next]);
+            tabs[next].focus();
+            activateTab(tabs[next], false);
         });
     });
 
-    // Activar la primera pestaña al cargar
-    activateTab(tabs[0]);
+    activateTab(tabs[0], false);
 }
 
 const MAPA_ESTADOS = Object.freeze({
@@ -138,44 +147,109 @@ const estado = {
     citaCancelar: null
 };
 
-function esCitaActiva(estadoCita) { return estadoCita === 'RESERVADA' || estadoCita === 'REPROGRAMADA'; }
-function prefiereMovimientoReducido() { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; }
+/**
+ * Indica si una cita admite cancelación.
+ * @param {string} estadoCita Estado de la cita.
+ * @returns {boolean} `true` si está activa.
+ */
+function esCitaActiva(estadoCita) {
+    return estadoCita === 'RESERVADA' || estadoCita === 'REPROGRAMADA';
+}
 
+/**
+ * Comprueba si el usuario prefiere movimiento reducido.
+ * @returns {boolean} `true` si debe evitarse la animación.
+ */
+function prefiereMovimientoReducido() {
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+/**
+ * Formatea una fecha ISO `YYYY-MM-DD` en español peruano.
+ * @param {string} valor Fecha ISO corta.
+ * @returns {string} Fecha legible.
+ */
 function formatFecha(valor) {
     if (!valor) return '—';
     const partes = String(valor).slice(0, 10).split('-').map(Number);
     if (partes.length !== 3 || partes.some((n) => Number.isNaN(n))) return String(valor);
     const fecha = new Date(partes[0], partes[1] - 1, partes[2]);
     try {
-        return new Intl.DateTimeFormat('es-PE', { weekday: 'short', day: '2-digit', month: 'long', year: 'numeric' }).format(fecha);
-    } catch { return String(valor); }
+        return new Intl.DateTimeFormat('es-PE', {
+            weekday: 'short',
+            day: '2-digit',
+            month: 'long',
+            year: 'numeric'
+        }).format(fecha);
+    } catch {
+        return String(valor);
+    }
 }
 
+/**
+ * Formatea un periodo `YYYY-MM` con nombre de mes y año.
+ * @param {string} valor Periodo ISO.
+ * @returns {string} Periodo legible.
+ */
 function formatPeriodo(valor) {
     const [anio, mes] = String(valor).split('-').map(Number);
     if (!anio || !mes) return String(valor);
     try {
-        const texto = new Intl.DateTimeFormat('es-PE', { month: 'long', year: 'numeric' }).format(new Date(anio, mes - 1, 1));
+        const texto = new Intl.DateTimeFormat('es-PE', {
+            month: 'long',
+            year: 'numeric'
+        }).format(new Date(anio, mes - 1, 1));
         return texto.charAt(0).toUpperCase() + texto.slice(1);
-    } catch { return String(valor); }
+    } catch {
+        return String(valor);
+    }
 }
 
+/**
+ * Formatea un periodo `YYYY-MM` en versión corta para etiquetas de gráficos.
+ * @param {string} valor Periodo ISO.
+ * @returns {string} Periodo corto legible.
+ */
 function formatPeriodoCorto(valor) {
     const [anio, mes] = String(valor).split('-').map(Number);
     if (!anio || !mes) return String(valor);
     try {
-        const texto = new Intl.DateTimeFormat('es-PE', { month: 'short', year: 'numeric' }).format(new Date(anio, mes - 1, 1));
+        const texto = new Intl.DateTimeFormat('es-PE', {
+            month: 'short',
+            year: 'numeric'
+        }).format(new Date(anio, mes - 1, 1));
         return texto.charAt(0).toUpperCase() + texto.slice(1);
-    } catch { return String(valor); }
+    } catch {
+        return String(valor);
+    }
 }
 
+/**
+ * Devuelve el HTML accesible de una insignia de estado.
+ * @param {string} estadoCita Estado de la cita.
+ * @returns {string} HTML seguro.
+ */
 function htmlEstado(estadoCita) {
     const meta = MAPA_ESTADOS[estadoCita] || { clase: 'state--neutral', icono: '•', texto: estadoCita };
     return `<span class="state ${meta.clase}"><span class="state-icon" aria-hidden="true">${meta.icono}</span>${escapeHtml(meta.texto)}</span>`;
 }
 
-function porcentaje(valor, total) { return !total ? '0.0' : ((valor / total) * 100).toFixed(1); }
+/**
+ * Calcula un porcentaje con un decimal.
+ * @param {number} valor Valor parcial.
+ * @param {number} total Total.
+ * @returns {string} Porcentaje sin el símbolo.
+ */
+function porcentaje(valor, total) {
+    return !total ? '0.0' : ((valor / total) * 100).toFixed(1);
+}
 
+/**
+ * Muestra un aviso en la zona de indicadores.
+ * @param {string} mensaje Texto.
+ * @param {'info'|'success'|'error'|'warning'} [tipo='error'] Tipo visual.
+ * @returns {void}
+ */
 function mostrarAvisoDashboard(mensaje, tipo = 'error') {
     const contenedor = document.getElementById('dashboard-alert');
     contenedor.className = `alert alert-${tipo === 'error' ? 'error' : tipo}`;
@@ -184,6 +258,12 @@ function mostrarAvisoDashboard(mensaje, tipo = 'error') {
     announce(mensaje, tipo === 'error' ? 'assertive' : 'polite');
 }
 
+/**
+ * Muestra un aviso en la sección de citas.
+ * @param {string} mensaje Texto.
+ * @param {'info'|'success'|'error'} [tipo='info'] Tipo visual.
+ * @returns {void}
+ */
 function mostrarAvisoCitas(mensaje, tipo = 'info') {
     const contenedor = document.getElementById('citas-alert');
     contenedor.className = `alert alert-${tipo === 'error' ? 'error' : tipo}`;
@@ -192,6 +272,12 @@ function mostrarAvisoCitas(mensaje, tipo = 'info') {
     announce(mensaje, tipo === 'error' ? 'assertive' : 'polite');
 }
 
+/**
+ * Muestra un aviso en la sección de personal.
+ * @param {string} mensaje Texto.
+ * @param {'info'|'success'|'error'|'warning'} [tipo='info'] Tipo visual.
+ * @returns {void}
+ */
 function mostrarAvisoPersonal(mensaje, tipo = 'info') {
     const contenedor = document.getElementById('personal-alert');
     contenedor.className = `alert alert-${tipo === 'error' ? 'error' : tipo}`;
@@ -200,6 +286,12 @@ function mostrarAvisoPersonal(mensaje, tipo = 'info') {
     announce(mensaje, tipo === 'error' ? 'assertive' : 'polite');
 }
 
+/**
+ * Muestra un aviso en la sección de lugares de atención.
+ * @param {string} mensaje Texto.
+ * @param {'info'|'success'|'error'} [tipo='info'] Tipo visual.
+ * @returns {void}
+ */
 function mostrarAvisoLugares(mensaje, tipo = 'info') {
     const contenedor = document.getElementById('lugares-alert');
     contenedor.className = `alert alert-${tipo === 'error' ? 'error' : tipo}`;
@@ -208,6 +300,12 @@ function mostrarAvisoLugares(mensaje, tipo = 'info') {
     announce(mensaje, tipo === 'error' ? 'assertive' : 'polite');
 }
 
+/**
+ * Muestra un aviso en la sección de medicamentos.
+ * @param {string} mensaje Texto.
+ * @param {'info'|'success'|'error'} [tipo='info'] Tipo visual.
+ * @returns {void}
+ */
 function mostrarAvisoMedicamentos(mensaje, tipo = 'info') {
     const contenedor = document.getElementById('medicamentos-alert');
     contenedor.className = `alert alert-${tipo === 'error' ? 'error' : tipo}`;
@@ -216,6 +314,10 @@ function mostrarAvisoMedicamentos(mensaje, tipo = 'info') {
     announce(mensaje, tipo === 'error' ? 'assertive' : 'polite');
 }
 
+/**
+ * Devuelve la paleta de gráficos adaptada al modo de alto contraste.
+ * @returns {string[]} Colores disponibles.
+ */
 function paletaGraficos() {
     if (document.documentElement.classList.contains('high-contrast')) {
         return ['#ffd400', '#ffdd44', '#e6bf00', '#ccaa00', '#b39700'];
@@ -223,6 +325,10 @@ function paletaGraficos() {
     return ['#006d7d', '#d97706', '#146c34', '#a4161a', '#6b21a8'];
 }
 
+/**
+ * Lee los tokens de color actuales del documento.
+ * @returns {{ texto: string, borde: string, superficie: string, contraste: boolean }} Tokens.
+ */
 function tokensGrafico() {
     const estilos = getComputedStyle(document.documentElement);
     return {
@@ -233,30 +339,80 @@ function tokensGrafico() {
     };
 }
 
+/**
+ * Prepara los datos de citas por especialidad ordenados de mayor a menor.
+ * @param {{ labels?: string[], values?: number[] }} grafico Datos de la API.
+ * @returns {{ etiquetas: string[], valores: number[], filas: Array<{ etiqueta: string, valor: number }>, total: number }}
+ */
 function prepararEspecialidades(grafico) {
     const etiquetas = Array.isArray(grafico.labels) ? grafico.labels : [];
     const valores = Array.isArray(grafico.values) ? grafico.values.map((n) => Number(n) || 0) : [];
-    const filas = etiquetas.map((etiqueta, indice) => ({ etiqueta, valor: valores[indice] || 0 })).sort((a, b) => b.valor - a.valor);
-    return { etiquetas: filas.map(f => f.etiqueta), valores: filas.map(f => f.valor), filas, total: filas.reduce((s, f) => s + f.valor, 0) };
+    const filas = etiquetas
+        .map((etiqueta, indice) => ({ etiqueta, valor: valores[indice] || 0 }))
+        .sort((a, b) => b.valor - a.valor);
+    return {
+        etiquetas: filas.map((f) => f.etiqueta),
+        valores: filas.map((f) => f.valor),
+        filas,
+        total: filas.reduce((s, f) => s + f.valor, 0)
+    };
 }
 
+/**
+ * Prepara los datos de evolución mensual.
+ * @param {{ labels?: string[], programadas?: number[], atendidas?: number[] }} grafico Datos.
+ * @returns {{ etiquetas: string[], programadas: number[], atendidas: number[], filas: Array<{ etiqueta: string, programadas: number, atendidas: number }>, total: number }}
+ */
 function prepararEvolucion(grafico) {
     const etiquetas = Array.isArray(grafico.labels) ? grafico.labels : [];
     const programadas = Array.isArray(grafico.programadas) ? grafico.programadas.map((n) => Number(n) || 0) : [];
     const atendidas = Array.isArray(grafico.atendidas) ? grafico.atendidas.map((n) => Number(n) || 0) : [];
-    const filas = etiquetas.map((etiqueta, indice) => ({ etiqueta, programadas: programadas[indice] || 0, atendidas: atendidas[indice] || 0 }));
-    return { etiquetas, programadas: filas.map(f => f.programadas), atendidas: filas.map(f => f.atendidas), filas, total: filas.reduce((s, f) => s + f.programadas, 0) };
+    const filas = etiquetas.map((etiqueta, indice) => ({
+        etiqueta,
+        programadas: programadas[indice] || 0,
+        atendidas: atendidas[indice] || 0
+    }));
+    return {
+        etiquetas,
+        programadas: filas.map((f) => f.programadas),
+        atendidas: filas.map((f) => f.atendidas),
+        filas,
+        total: filas.reduce((s, f) => s + f.programadas, 0)
+    };
 }
 
+/**
+ * Prepara los datos de distribución por estado.
+ * @param {{ labels?: string[], values?: number[] }} grafico Datos.
+ * @returns {{ etiquetas: string[], valores: number[], filas: Array<{ etiqueta: string, valor: number }>, total: number }}
+ */
 function prepararEstados(grafico) {
     const etiquetas = Array.isArray(grafico.labels) ? grafico.labels : [];
     const valores = Array.isArray(grafico.values) ? grafico.values.map((n) => Number(n) || 0) : [];
     const filas = etiquetas.map((etiqueta, indice) => ({ etiqueta, valor: valores[indice] || 0 }));
-    return { etiquetas, valores, filas, total: filas.reduce((s, f) => s + f.valor, 0) };
+    return {
+        etiquetas,
+        valores,
+        filas,
+        total: filas.reduce((s, f) => s + f.valor, 0)
+    };
 }
 
-function filaVacia(columnas, mensaje) { return `<tr><td colspan="${columnas}" class="table-empty">${escapeHtml(mensaje)}</td></tr>`; }
+/**
+ * Devuelve una fila de tabla que ocupa todas las columnas.
+ * @param {number} columnas Número de columnas.
+ * @param {string} mensaje Mensaje.
+ * @returns {string} HTML de la fila.
+ */
+function filaVacia(columnas, mensaje) {
+    return `<tr><td colspan="${columnas}" class="table-empty">${escapeHtml(mensaje)}</td></tr>`;
+}
 
+/**
+ * Renderiza la tabla equivalente del gráfico de especialidades.
+ * @param {ReturnType<typeof prepararEspecialidades>} datos Datos preparados.
+ * @returns {string} Resumen textual.
+ */
 function renderTablaEspecialidades(datos) {
     const cuerpo = document.getElementById('tabla-especialidad');
     if (datos.filas.length === 0) {
@@ -275,6 +431,11 @@ function renderTablaEspecialidades(datos) {
     return `Se registraron ${datos.total} citas en ${datos.filas.length} especialidad(es). ${principal.etiqueta} concentra ${principal.valor} citas (${porcentaje(principal.valor, datos.total)}%).`;
 }
 
+/**
+ * Renderiza la tabla equivalente del gráfico de evolución mensual.
+ * @param {ReturnType<typeof prepararEvolucion>} datos Datos preparados.
+ * @returns {string} Resumen textual.
+ */
 function renderTablaEvolucion(datos) {
     const cuerpo = document.getElementById('tabla-evolucion');
     if (datos.filas.length === 0) {
@@ -289,11 +450,17 @@ function renderTablaEvolucion(datos) {
         </tr>
     `).join('');
     if (datos.total === 0) return 'No hay citas registradas para los filtros seleccionados.';
-    const principal = datos.filas.reduce((maximo, fila) => fila.programadas > maximo.programadas ? fila : maximo, datos.filas[0]);
+    const principal = datos.filas.reduce((maximo, fila) =>
+        fila.programadas > maximo.programadas ? fila : maximo, datos.filas[0]);
     const atendidas = datos.atendidas.reduce((suma, valor) => suma + valor, 0);
     return `Se registraron ${datos.total} citas en ${datos.filas.length} mes(es); ${atendidas} fueron atendidas. El mes con más citas programadas fue ${formatPeriodoCorto(principal.etiqueta)} con ${principal.programadas}.`;
 }
 
+/**
+ * Renderiza la tabla equivalente del gráfico de estados.
+ * @param {ReturnType<typeof prepararEstados>} datos Datos preparados.
+ * @returns {string} Resumen textual.
+ */
 function renderTablaEstados(datos) {
     const cuerpo = document.getElementById('tabla-estados');
     if (datos.filas.length === 0) {
@@ -308,7 +475,8 @@ function renderTablaEstados(datos) {
         </tr>
     `).join('');
     if (datos.total === 0) return 'No hay citas registradas para los filtros seleccionados.';
-    const principal = datos.filas.reduce((maximo, fila) => fila.valor > maximo.valor ? fila : maximo, datos.filas[0]);
+    const principal = datos.filas.reduce((maximo, fila) =>
+        fila.valor > maximo.valor ? fila : maximo, datos.filas[0]);
     const buscar = (nombre) => {
         const indice = datos.etiquetas.findIndex((etiqueta) => etiqueta.toLowerCase() === nombre.toLowerCase());
         return indice >= 0 ? (datos.valores[indice] || 0) : 0;
@@ -317,13 +485,26 @@ function renderTablaEstados(datos) {
     return `Se contabilizaron ${datos.total} citas: ${activas} activas, ${buscar('Atendidas')} atendidas, ${buscar('Canceladas')} canceladas y ${buscar('Inasistencias')} inasistencias. El estado más frecuente es ${principal.etiqueta} con ${principal.valor}.`;
 }
 
+/**
+ * Destruye las instancias de gráficos existentes antes de volver a dibujar.
+ * @returns {void}
+ */
 function destruirGraficos() {
     Object.values(estado.charts).forEach((grafico) => {
-        try { grafico.destroy(); } catch {}
+        try {
+            grafico.destroy();
+        } catch {
+            /* La instancia ya pudo haber sido destruida. */
+        }
     });
     estado.charts = {};
 }
 
+/**
+ * Renderiza los tres gráficos y sus tablas equivalentes.
+ * @param {Record<string, any>} graficos Datos de gráficos de la API.
+ * @returns {void}
+ */
 function renderGraficos(graficos) {
     const especialidades = prepararEspecialidades(graficos.citasPorEspecialidad || {});
     const evolucion = prepararEvolucion(graficos.evolucionMensual || {});
@@ -339,10 +520,17 @@ function renderGraficos(graficos) {
         resumenEspecialidades += aviso;
         resumenEvolucion += aviso;
         resumenEstados += aviso;
-        document.querySelectorAll('.chart-frame').forEach((marco) => { marco.hidden = true; });
-        mostrarAvisoDashboard('No se pudo cargar la biblioteca de gráficos. Los indicadores y las tablas equivalentes siguen disponibles.', 'warning');
+        document.querySelectorAll('.chart-frame').forEach((marco) => {
+            marco.hidden = true;
+        });
+        mostrarAvisoDashboard(
+            'No se pudo cargar la biblioteca de gráficos. Los indicadores y las tablas equivalentes siguen disponibles.',
+            'warning'
+        );
     } else {
-        document.querySelectorAll('.chart-frame').forEach((marco) => { marco.hidden = false; });
+        document.querySelectorAll('.chart-frame').forEach((marco) => {
+            marco.hidden = false;
+        });
     }
 
     document.getElementById('resumen-grafico-especialidad').textContent = resumenEspecialidades;
@@ -461,6 +649,11 @@ function renderGraficos(graficos) {
     });
 }
 
+/**
+ * Pinta los KPIs, el resumen de filtros y los gráficos.
+ * @param {Record<string, any>} datos Respuesta de la API.
+ * @returns {void}
+ */
 function renderIndicadores(datos) {
     const kpis = datos.kpis || {};
     const programadas = Number(kpis.citasProgramadas) || 0;
@@ -483,17 +676,26 @@ function renderIndicadores(datos) {
     document.getElementById('nota-inasistencia').textContent = `${inasistencias} de ${programadas} citas programadas.`;
 
     const filtros = datos.filtrosAplicados || {};
-    const periodo = filtros.periodo && filtros.periodo !== 'todos' ? formatPeriodo(filtros.periodo) : 'todos los periodos';
-    const especialidad = filtros.especialidad && filtros.especialidad !== 'todas' ? filtros.especialidad : 'todas las especialidades';
+    const periodo = filtros.periodo && filtros.periodo !== 'todos'
+        ? formatPeriodo(filtros.periodo)
+        : 'todos los periodos';
+    const especialidad = filtros.especialidad && filtros.especialidad !== 'todas'
+        ? filtros.especialidad
+        : 'todas las especialidades';
     document.getElementById('resumen-filtros').textContent = `Mostrando ${periodo} y ${especialidad}.`;
 
     renderGraficos(datos.graficos || {});
     document.getElementById('dashboard-contenido').hidden = false;
 }
 
+/**
+ * Carga los indicadores desde la API.
+ * @param {boolean} [anunciar=true] Si debe anunciar el resultado.
+ * @returns {Promise<void>}
+ */
 async function cargarIndicadores(anunciar = true) {
     const cargando = document.getElementById('dashboard-loading');
-    cargando.hidden = false;
+    if (cargando) cargando.hidden = false;
     document.getElementById('dashboard-alert').hidden = true;
 
     try {
@@ -502,21 +704,29 @@ async function cargarIndicadores(anunciar = true) {
         renderIndicadores(datos);
         if (anunciar) {
             const kpis = datos.kpis || {};
-            announce(`Indicadores actualizados. ${kpis.citasProgramadas || 0} citas programadas, ${kpis.citasAtendidas || 0} atendidas y una tasa de inasistencia de ${kpis.porcentajeInasistencia || 0} por ciento.`, 'polite');
+            announce(
+                `Indicadores actualizados. ${kpis.citasProgramadas || 0} citas programadas, ${kpis.citasAtendidas || 0} atendidas y una tasa de inasistencia de ${kpis.porcentajeInasistencia || 0} por ciento.`,
+                'polite'
+            );
         }
     } catch (error) {
         mostrarAvisoDashboard(error.message || 'No se pudieron calcular los indicadores.', 'error');
     } finally {
-        cargando.hidden = true;
+        if (cargando) cargando.hidden = true;
     }
 }
 
+/**
+ * Renderiza la tabla de todas las citas del sistema.
+ * @returns {void}
+ */
 function renderCitasAdmin() {
     const contenedor = document.getElementById('citas-tabla-contenedor');
     const vacio = document.getElementById('citas-empty');
     const cuerpo = document.getElementById('cuerpo-citas-admin');
 
-    document.getElementById('caption-citas-admin').textContent = `Citas registradas en el sistema (${estado.citas.length} registros)`;
+    document.getElementById('caption-citas-admin').textContent =
+        `Citas registradas en el sistema (${estado.citas.length} registros)`;
 
     if (estado.citas.length === 0) {
         cuerpo.innerHTML = '';
@@ -548,11 +758,16 @@ function renderCitasAdmin() {
     }).join('');
 }
 
+/**
+ * Carga todas las citas del sistema.
+ * @param {boolean} [anunciar=true] Si debe anunciar el resultado.
+ * @returns {Promise<void>}
+ */
 async function cargarCitas(anunciar = true) {
     const cargando = document.getElementById('citas-loading');
     const contenedor = document.getElementById('citas-tabla-contenedor');
     const vacio = document.getElementById('citas-empty');
-    cargando.hidden = false;
+    if (cargando) cargando.hidden = false;
     contenedor.hidden = true;
     vacio.hidden = true;
     document.getElementById('citas-alert').hidden = true;
@@ -567,16 +782,21 @@ async function cargarCitas(anunciar = true) {
         mostrarAvisoCitas(error.message || 'No se pudieron cargar las citas.', 'error');
         vacio.hidden = false;
     } finally {
-        cargando.hidden = true;
+        if (cargando) cargando.hidden = true;
     }
 }
 
+/**
+ * Renderiza la tabla de usuarios del sistema.
+ * @returns {void}
+ */
 function renderUsuarios() {
     const contenedor = document.getElementById('usuarios-tabla-contenedor');
     const vacio = document.getElementById('usuarios-empty');
     const cuerpo = document.getElementById('cuerpo-usuarios');
 
-    document.getElementById('caption-usuarios').textContent = `Cuentas de usuario del sistema MINSA (${estado.usuarios.length} registros)`;
+    document.getElementById('caption-usuarios').textContent =
+        `Cuentas de usuario del sistema MINSA (${estado.usuarios.length} registros)`;
 
     if (estado.usuarios.length === 0) {
         cuerpo.innerHTML = '';
@@ -614,11 +834,16 @@ function renderUsuarios() {
     }).join('');
 }
 
+/**
+ * Carga las cuentas de usuario (solo ADMIN).
+ * @param {boolean} [anunciar=true] Si debe anunciar el resultado.
+ * @returns {Promise<void>}
+ */
 async function cargarUsuarios(anunciar = true) {
-    const cargando = document.getElementById('usuarios-loader');
+    const cargando = document.getElementById('usuarios-loader') || document.getElementById('usuarios-loading');
     const contenedor = document.getElementById('usuarios-tabla-contenedor');
     const vacio = document.getElementById('usuarios-empty');
-    cargando.hidden = false;
+    if (cargando) cargando.hidden = false;
     contenedor.hidden = true;
     vacio.hidden = true;
 
@@ -632,23 +857,37 @@ async function cargarUsuarios(anunciar = true) {
         mostrarAvisoPersonal(error.message || 'No se pudieron cargar los usuarios.', 'error');
         vacio.hidden = false;
     } finally {
-        cargando.hidden = true;
+        if (cargando) cargando.hidden = true;
     }
 }
 
+/**
+ * Carga médicos para el alta de personal.
+ * @returns {Promise<void>}
+ */
 async function cargarCatalogos() {
     try {
         estado.doctores = await getDoctores();
         const select = document.getElementById('staff-medico');
-        select.innerHTML = '<option value="">Sin vínculo con un médico</option>' +
-            estado.doctores.map((doctor) => `
-                <option value="${doctor.id}">${escapeHtml(doctor.nombre)} (${escapeHtml(doctor.cmp)}) · ${escapeHtml(doctor.especialidad)}</option>
-            `).join('');
+        if (select) {
+            select.innerHTML = '<option value="">Sin vínculo con un médico</option>' +
+                estado.doctores.map((doctor) => `
+                    <option value="${doctor.id}">${escapeHtml(doctor.nombre)} (${escapeHtml(doctor.cmp)}) · ${escapeHtml(doctor.especialidad)}</option>
+                `).join('');
+        }
     } catch (error) {
-        mostrarAvisoPersonal(error.message || 'No se pudo cargar el catálogo de médicos para vincular cuentas.', 'error');
+        mostrarAvisoPersonal(
+            error.message || 'No se pudo cargar el catálogo de médicos para vincular cuentas.',
+            'error'
+        );
     }
 }
 
+/**
+ * Deriva las especialidades únicas desde los hospitales cargados y actualiza los
+ * selectores y la lista de verificación del alta de lugares.
+ * @returns {void}
+ */
 function actualizarEspecialidadesDesdeHospitales() {
     const mapa = new Map();
     estado.hospitales.forEach((hospital) => {
@@ -666,7 +905,9 @@ function actualizarEspecialidadesDesdeHospitales() {
     const select = document.getElementById('especialidad-dashboard');
     if (select) {
         select.innerHTML = '<option value="">Todas las especialidades</option>' +
-            estado.especialidades.map((nombre) => `<option value="${escapeHtml(nombre)}">${escapeHtml(nombre)}</option>`).join('');
+            estado.especialidades.map((nombre) =>
+                `<option value="${escapeHtml(nombre)}">${escapeHtml(nombre)}</option>`
+            ).join('');
     }
 
     const contenedor = document.getElementById('hospital-especialidades');
@@ -686,12 +927,17 @@ function actualizarEspecialidadesDesdeHospitales() {
     }
 }
 
+/**
+ * Renderiza la tabla de lugares de atención registrados.
+ * @returns {void}
+ */
 function renderHospitales() {
     const contenedor = document.getElementById('hospitales-tabla-contenedor');
     const vacio = document.getElementById('hospitales-empty');
     const cuerpo = document.getElementById('cuerpo-hospitales');
 
-    document.getElementById('caption-hospitales').textContent = `Establecimientos de salud registrados (${estado.hospitales.length} registros)`;
+    document.getElementById('caption-hospitales').textContent =
+        `Establecimientos de salud registrados (${estado.hospitales.length} registros)`;
 
     if (estado.hospitales.length === 0) {
         cuerpo.innerHTML = '';
@@ -719,11 +965,16 @@ function renderHospitales() {
     }).join('');
 }
 
+/**
+ * Carga los lugares de atención desde la API.
+ * @param {boolean} [anunciar=true] Si debe anunciar el resultado.
+ * @returns {Promise<void>}
+ */
 async function cargarHospitales(anunciar = true) {
-    const cargando = document.getElementById('hospitales-loader');
+    const cargando = document.getElementById('hospitales-loader') || document.getElementById('hospitales-loading');
     const contenedor = document.getElementById('hospitales-tabla-contenedor');
     const vacio = document.getElementById('hospitales-empty');
-    cargando.hidden = false;
+    if (cargando) cargando.hidden = false;
     contenedor.hidden = true;
     vacio.hidden = true;
 
@@ -738,16 +989,21 @@ async function cargarHospitales(anunciar = true) {
         mostrarAvisoLugares(error.message || 'No se pudieron cargar los lugares de atención.', 'error');
         vacio.hidden = false;
     } finally {
-        cargando.hidden = true;
+        if (cargando) cargando.hidden = true;
     }
 }
 
+/**
+ * Renderiza la tabla del catálogo de medicamentos.
+ * @returns {void}
+ */
 function renderMedicamentos() {
     const contenedor = document.getElementById('medicamentos-tabla-contenedor');
     const vacio = document.getElementById('medicamentos-empty');
     const cuerpo = document.getElementById('cuerpo-medicamentos');
 
-    document.getElementById('caption-medicamentos').textContent = `Catálogo de medicamentos del MINSA (${estado.medicamentos.length} registros)`;
+    document.getElementById('caption-medicamentos').textContent =
+        `Catálogo de medicamentos del MINSA (${estado.medicamentos.length} registros)`;
 
     if (estado.medicamentos.length === 0) {
         cuerpo.innerHTML = '';
@@ -777,11 +1033,16 @@ function renderMedicamentos() {
     }).join('');
 }
 
+/**
+ * Carga el catálogo de medicamentos desde la API.
+ * @param {boolean} [anunciar=true] Si debe anunciar el resultado.
+ * @returns {Promise<void>}
+ */
 async function cargarMedicamentos(anunciar = true) {
-    const cargando = document.getElementById('medicamentos-loader');
+    const cargando = document.getElementById('medicamentos-loader') || document.getElementById('medicamentos-loading');
     const contenedor = document.getElementById('medicamentos-tabla-contenedor');
     const vacio = document.getElementById('medicamentos-empty');
-    cargando.hidden = false;
+    if (cargando) cargando.hidden = false;
     contenedor.hidden = true;
     vacio.hidden = true;
 
@@ -795,10 +1056,16 @@ async function cargarMedicamentos(anunciar = true) {
         mostrarAvisoMedicamentos(error.message || 'No se pudo cargar el catálogo de medicamentos.', 'error');
         vacio.hidden = false;
     } finally {
-        cargando.hidden = true;
+        if (cargando) cargando.hidden = true;
     }
 }
 
+/**
+ * Muestra un aviso en la sección de horarios (admin).
+ * @param {string} mensaje Texto.
+ * @param {'info'|'success'|'error'|'warning'} [tipo='info'] Tipo visual.
+ * @returns {void}
+ */
 function mostrarAvisoHorariosAdmin(mensaje, tipo = 'info') {
     const contenedor = document.getElementById('horarios-admin-alert');
     contenedor.className = `alert alert-${tipo === 'error' ? 'error' : tipo}`;
@@ -807,12 +1074,17 @@ function mostrarAvisoHorariosAdmin(mensaje, tipo = 'info') {
     announce(mensaje, tipo === 'error' ? 'assertive' : 'polite');
 }
 
+/**
+ * Renderiza la tabla de horarios registrados (admin).
+ * @returns {void}
+ */
 function renderHorariosAdmin() {
     const contenedor = document.getElementById('horarios-admin-tabla-contenedor');
     const vacio = document.getElementById('horarios-admin-empty');
     const cuerpo = document.getElementById('cuerpo-horarios-admin');
 
-    document.getElementById('caption-horarios-admin').textContent = `Bloques horarios disponibles para reserva (${estado.horariosAdmin.length} registros)`;
+    document.getElementById('caption-horarios-admin').textContent =
+        `Bloques horarios disponibles para reserva (${estado.horariosAdmin.length} registros)`;
 
     if (estado.horariosAdmin.length === 0) {
         cuerpo.innerHTML = '';
@@ -845,11 +1117,16 @@ function renderHorariosAdmin() {
     }).join('');
 }
 
+/**
+ * Carga los horarios registrados desde la API (para admin).
+ * @param {boolean} [anunciar=true] Si debe anunciar el resultado.
+ * @returns {Promise<void>}
+ */
 async function cargarHorariosAdmin(anunciar = true) {
-    const cargando = document.getElementById('horarios-admin-loader');
+    const cargando = document.getElementById('horarios-admin-loader') || document.getElementById('horarios-admin-loading');
     const contenedor = document.getElementById('horarios-admin-tabla-contenedor');
     const vacio = document.getElementById('horarios-admin-empty');
-    cargando.hidden = false;
+    if (cargando) cargando.hidden = false;
     contenedor.hidden = true;
     vacio.hidden = true;
     document.getElementById('horarios-admin-alert').hidden = true;
@@ -878,10 +1155,14 @@ async function cargarHorariosAdmin(anunciar = true) {
         mostrarAvisoHorariosAdmin(error.message || 'No se pudieron cargar los horarios.', 'error');
         vacio.hidden = false;
     } finally {
-        cargando.hidden = true;
+        if (cargando) cargando.hidden = true;
     }
 }
 
+/**
+ * Carga los médicos en el selector del formulario de horarios (admin).
+ * @returns {Promise<void>}
+ */
 async function cargarMedicosParaHorarios() {
     try {
         const doctores = await getDoctores();
@@ -897,10 +1178,25 @@ async function cargarMedicosParaHorarios() {
     }
 }
 
+/**
+ * Marca o desmarca un campo como inválido.
+ * @param {HTMLElement} campo Campo del formulario.
+ * @param {boolean} invalido Estado de validez.
+ * @returns {void}
+ */
 function marcarInvalido(campo, invalido) {
-    if (invalido) { campo.setAttribute('aria-invalid', 'true'); } else { campo.removeAttribute('aria-invalid'); }
+    if (invalido) {
+        campo.setAttribute('aria-invalid', 'true');
+    } else {
+        campo.removeAttribute('aria-invalid');
+    }
 }
 
+/**
+ * Registra un nuevo bloque horario desde el dashboard (admin).
+ * @param {SubmitEvent} event Evento de envío.
+ * @returns {Promise<void>}
+ */
 async function enviarHorarioAdmin(event) {
     event.preventDefault();
     const medico = document.getElementById('horario-admin-medico');
@@ -962,6 +1258,10 @@ async function enviarHorarioAdmin(event) {
     }
 }
 
+/**
+ * Muestra u oculta los campos exclusivos del rol EMPLEADO.
+ * @returns {void}
+ */
 function actualizarCamposRol() {
     const rol = document.getElementById('staff-rol').value;
     const esEmpleado = rol === 'EMPLEADO';
@@ -971,17 +1271,27 @@ function actualizarCamposRol() {
     document.getElementById('staff-medico').disabled = !esEmpleado;
 }
 
+/**
+ * Limpia las marcas de invalidación del formulario de personal.
+ * @returns {void}
+ */
 function limpiarInvalidosStaff() {
     ['staff-dni', 'staff-nombres', 'staff-email', 'staff-telefono', 'staff-password', 'staff-cmp', 'staff-medico']
         .forEach((id) => marcarInvalido(document.getElementById(id), false));
 }
 
+/**
+ * Abre el diálogo para cancelar una cita desde el dashboard.
+ * @param {Record<string, any>} cita Cita seleccionada.
+ * @returns {void}
+ */
 function abrirCancelar(cita) {
     if (!cita) return;
     estado.citaCancelar = cita;
     document.getElementById('cancelar-dashboard-cita-id').value = String(cita.id);
     document.getElementById('cancelar-dashboard-motivo').value = '';
-    document.getElementById('cancelar-dashboard-resumen').textContent = `¿Desea cancelar la cita ${cita.codigo_atencion} del ${formatFecha(cita.fecha_cita)} a las ${cita.hora_cita} del paciente ${cita.nombre_paciente}? El horario quedará libre.`;
+    document.getElementById('cancelar-dashboard-resumen').textContent =
+        `¿Desea cancelar la cita ${cita.codigo_atencion} del ${formatFecha(cita.fecha_cita)} a las ${cita.hora_cita} del paciente ${cita.nombre_paciente}? El horario quedará libre.`;
     document.getElementById('cancelar-dashboard-alert').hidden = true;
 
     const dialogo = document.getElementById('dlg-cancelar-dashboard');
@@ -989,6 +1299,11 @@ function abrirCancelar(cita) {
     document.getElementById('titulo-dlg-cancelar-dashboard').focus();
 }
 
+/**
+ * Crea una cuenta institucional EMPLEADO o ADMIN.
+ * @param {SubmitEvent} event Evento de envío.
+ * @returns {Promise<void>}
+ */
 async function enviarStaff(event) {
     event.preventDefault();
     limpiarInvalidosStaff();
@@ -1055,6 +1370,11 @@ async function enviarStaff(event) {
     }
 }
 
+/**
+ * Cancela una cita desde el dashboard.
+ * @param {SubmitEvent} event Evento de envío.
+ * @returns {Promise<void>}
+ */
 async function enviarCancelacion(event) {
     event.preventDefault();
     const cita = estado.citaCancelar;
@@ -1071,7 +1391,8 @@ async function enviarCancelacion(event) {
         mostrarAvisoCitas(`La cita ${cita.codigo_atencion} fue cancelada correctamente.`, 'success');
         await Promise.all([cargarCitas(false), cargarIndicadores(false)]);
     } catch (error) {
-        document.getElementById('cancelar-dashboard-alert-texto').textContent = error.message || 'No se pudo cancelar la cita.';
+        document.getElementById('cancelar-dashboard-alert-texto').textContent =
+            error.message || 'No se pudo cancelar la cita.';
         document.getElementById('cancelar-dashboard-alert').hidden = false;
         announce(document.getElementById('cancelar-dashboard-alert-texto').textContent, 'assertive');
     } finally {
@@ -1081,6 +1402,11 @@ async function enviarCancelacion(event) {
     }
 }
 
+/**
+ * Registra un nuevo lugar de atención con sus especialidades.
+ * @param {SubmitEvent} event Evento de envío.
+ * @returns {Promise<void>}
+ */
 async function enviarHospital(event) {
     event.preventDefault();
     const nombre = document.getElementById('hospital-nombre');
@@ -1089,7 +1415,9 @@ async function enviarHospital(event) {
     const direccion = document.getElementById('hospital-direccion');
     const latitud = document.getElementById('hospital-latitud');
     const longitud = document.getElementById('hospital-longitud');
-    const especialidades = Array.from(document.querySelectorAll('#hospital-especialidades input[name="hospital-especialidad"]:checked')).map((input) => Number(input.value));
+    const especialidades = Array.from(
+        document.querySelectorAll('#hospital-especialidades input[name="hospital-especialidad"]:checked')
+    ).map((input) => Number(input.value));
 
     const lat = Number(latitud.value);
     const lng = Number(longitud.value);
@@ -1143,6 +1471,11 @@ async function enviarHospital(event) {
     }
 }
 
+/**
+ * Registra un nuevo medicamento en el catálogo.
+ * @param {SubmitEvent} event Evento de envío.
+ * @returns {Promise<void>}
+ */
 async function enviarMedicamento(event) {
     event.preventDefault();
     const codigo = document.getElementById('medicamento-codigo');
@@ -1196,6 +1529,10 @@ async function enviarMedicamento(event) {
     }
 }
 
+/**
+ * Conecta los eventos de la vista.
+ * @returns {void}
+ */
 function conectarEventos() {
     const formFiltros = document.getElementById('form-filtros-dashboard');
     formFiltros.addEventListener('submit', (event) => {
@@ -1253,6 +1590,10 @@ function conectarEventos() {
     });
 }
 
+/**
+ * Vuelve a dibujar los gráficos si cambia el modo de alto contraste.
+ * @returns {void}
+ */
 function observarContraste() {
     let ultimoContraste = document.documentElement.classList.contains('high-contrast');
     const observador = new MutationObserver(() => {
@@ -1264,7 +1605,17 @@ function observarContraste() {
     observador.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
 }
 
+/**
+ * Inicializa el dashboard administrativo.
+ * @returns {Promise<void>}
+ */
 async function iniciar() {
+    const usuario = requireRole(['ADMIN']);
+    if (!usuario) {
+        return;
+    }
+    estado.usuario = usuario;
+
     initAccessibility();
     initDashboardTabs();
 

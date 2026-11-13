@@ -156,7 +156,7 @@
                         <div class="chart-grid" style="margin-top: 1.25rem;">
                             <article class="chart-card">
                                 <h3 id="titulo-grafico-especialidad">Citas por especialidad</h3>
-                                <p class="help">Distribución de las cita registradas según la especialidad médica.</p>
+                                <p class="help">Distribución de las citas registradas según la especialidad médica.</p>
                                 <div class="chart-frame">
                                     <canvas id="grafico-especialidad" role="img" aria-describedby="resumen-grafico-especialidad"></canvas>
                                 </div>
@@ -242,7 +242,7 @@
                             <h2 id="titulo-citas-admin">Todas las citas del sistema</h2>
                             <p class="card-subtitle">Visualice cualquier cita y cancele las que sigan activas.</p>
                         </div>
-                        <button type="button" id="btn-recargar-citas-admin" class="btn btn-secondary btn-small">Actual</button>
+                        <button type="button" id="btn-recargar-citas-admin" class="btn btn-secondary btn-small">Actualizar</button>
                     </div>
 
                     <div id="citas-alert" class="alert alert-info" role="status" hidden>
@@ -254,11 +254,11 @@
                         <span class="loading-spinner" aria-hidden="true"></span> Cargando todas las citas…
                     </div>
 
-                    <p id="citas-empty" class="empty-state" hidden>No hay cita registradas en el sistema.</p>
+                    <p id="citas-empty" class="empty-state" hidden>No hay citas registradas en el sistema.</p>
 
                     <div id="citas-tabla-contenedor" class="table-responsive" hidden>
                         <table class="data-table">
-                            <caption id="caption-citas-admin">Cita registradas en el sistema</caption>
+                            <caption id="caption-citas-admin">Citas registradas en el sistema</caption>
                             <thead>
                                 <tr>
                                     <th scope="col">Código</th>
@@ -353,10 +353,10 @@
                                     <h2>Usuarios registrados</h2>
                                     <p class="card-subtitle">Consulte las cuentas del sistema MINSA.</p>
                                 </div>
-                                <button type="button" id="btn-recargar-usuarios" class="btn btn-secondary btn-small">Actual</button>
+                                <button type="button" id="btn-recargar-usuarios" class="btn btn-secondary btn-small">Actualizar</button>
                             </div>
 
-                            <div id="usuarios-loader" class="loading-state">
+                            <div id="usuarios-loading" class="loading-state">
                                 <span class="loading-spinner" aria-hidden="true"></span> Cargando usuarios…
                             </div>
                             <p id="usuarios-empty" class="empty-state" hidden>No hay usuarios registrados.</p>
@@ -447,10 +447,10 @@
                                     <h2>Lugares registrados</h2>
                                     <p class="card-subtitle">Establecimientos de salud del MINSA.</p>
                                 </div>
-                                <button type="button" id="btn-recargar-hospitales" class="btn btn-secondary btn-small">Actual</button>
+                                <button type="button" id="btn-recargar-hospitales" class="btn btn-secondary btn-small">Actualizar</button>
                             </div>
 
-                            <div id="hospitales-loader" class="loading-state">
+                            <div id="hospitales-loading" class="loading-state">
                                 <span class="loading-spinner" aria-hidden="true"></span> Cargando lugares…
                             </div>
                             <p id="hospitales-empty" class="empty-state" hidden>No hay lugares registrados.</p>
@@ -530,10 +530,10 @@
                                     <h2>Catálogo de medicamentos</h2>
                                     <p class="card-subtitle">Consulte el catálogo activo usado en las recetas.</p>
                                 </div>
-                                <button type="button" id="btn-recargar-medicamentos" class="btn btn-secondary btn-small">Actual</button>
+                                <button type="button" id="btn-recargar-medicamentos" class="btn btn-secondary btn-small">Actualizar</button>
                             </div>
 
-                            <div id="medicamentos-loader" class="loading-state">
+                            <div id="medicamentos-loading" class="loading-state">
                                 <span class="loading-spinner" aria-hidden="true"></span> Cargando medicamentos…
                             </div>
                             <p id="medicamentos-empty" class="empty-state" hidden>No hay medicamentos registrados.</p>
@@ -609,10 +609,10 @@
                                     <h2>Bloques horarios registrados</h2>
                                     <p class="card-subtitle">Horarios disponibles para reserva.</p>
                                 </div>
-                                <button type="button" id="btn-recargar-horarios-admin" class="btn btn-secondary btn-small">Actual</button>
+                                <button type="button" id="btn-recargar-horarios-admin" class="btn btn-secondary btn-small">Actualizar</button>
                             </div>
 
-                            <div id="horarios-admin-loader" class="loading-state">
+                            <div id="horarios-admin-loading" class="loading-state">
                                 <span class="loading-spinner" aria-hidden="true"></span> Cargando horarios…
                             </div>
                             <p id="horarios-admin-empty" class="empty-state" hidden>No hay bloques horarios registrados.</p>
@@ -643,7 +643,7 @@
         <div class="dialog-card">
             <div class="dialog-head">
                 <h2 id="titulo-dlg-cancelar-dashboard" tabindex="-1">Cancelar cita</h2>
-                <button type="button" class="dialog-close" data-cerrar-dialog="dlg-cancelar-dashboard" aria-label="Cerrar ventana"></button>
+                <button type="button" class="dialog-close" data-cerrar-dialog="dlg-cancelar-dashboard" aria-label="Cerrar ventana">✕</button>
             </div>
             <p id="cancelar-dashboard-resumen" class="help"></p>
             <div id="cancelar-dashboard-alert" class="alert alert-error" role="alert" hidden>
