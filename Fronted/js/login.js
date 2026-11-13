@@ -1,4 +1,4 @@
-﻿import { login, registerPaciente, saveSession, clearSession, getHomeForUser } from './services/apiClient.js';
+﻿import { login, registerPaciente, saveSession, getHomeForUser } from './services/apiClient.js';
 import { ROL_LABELS, DEMO_USERS } from './config/api.config.js';
 import { mostrarError, ocultarError, estadoBoton, marcarCampo, announce } from './shared/accessibility.js';
 
@@ -25,8 +25,9 @@ const checkSession = () => {
     if (window.location.hash === '#registro') return;
     try {
         const session = JSON.parse(localStorage.getItem('minsa_session'));
-        if (session && session.token && session.USUARIO) {
-            const dest = session.USUARIO.rol === 'ADMIN' ? 'dashboard.html' : 'Minsa.html';
+        const usuario = session && (session.usuario || session.USUARIO);
+        if (session && session.token && usuario) {
+            const dest = usuario.rol === 'ADMIN' ? 'dashboard.html' : 'Minsa.html';
             window.location.replace(dest);
         }
     } catch (e) {}
@@ -57,7 +58,7 @@ async function sendingLogin(event) {
     }
 
     if (invalido) {
-        mostrarError('login', 'Complete su identificador y su contrase\u00f1a para continuar.');
+        mostrarError('login', 'Complete su identificador y su contraseña para continuar.');
         (identificadorLimpio ? password : identificador).focus();
         return;
     }
@@ -67,20 +68,29 @@ async function sendingLogin(event) {
         limpiarSesionPreservandoAccesibilidad();
 
         const resultado = await login({ identificador: identificadorLimpio, password: password.value });
-        const usuario = resultado.USUARIO;
+        const usuario = resultado.usuario || resultado.USUARIO;
+        if (!usuario) {
+            throw new Error('La respuesta del servidor no incluyó los datos del usuario.');
+        }
+
         const rol = ROL_LABELS[usuario.rol] || usuario.rol;
         announce(`Acceso correcto. Bienvenido, ${usuario.nombres}. Rol ${rol}.`, 'polite');
 
-        saveSession(resultado.token, resultado.USUARIO);
+        saveSession(resultado.token, usuario);
 
-        const destino = getHomeForUser[usuario.rol] || (usuario.rol === 'ADMIN' ? 'dashboard.html' : 'Minsa.html');
+        const destino = usuario.rol === 'ADMIN'
+            ? 'dashboard.html'
+            : usuario.rol === 'PACIENTE'
+                ? 'Minsa.html'
+                : (typeof getHomeForUser === 'function' ? getHomeForUser(usuario) : 'index.html');
+
         estadoBoton(btnLogin, true, 'Ingresar al sistema');
-        btnLogin.textContent = 'Acceso correcto. Redirigiendo...';
+        btnLogin.textContent = 'Acceso correcto. Redirigiendo…';
         window.setTimeout(() => {
             window.location.assign(destino);
         }, 700);
     } catch (error) {
-        mostrarError('login', error.message || 'No fue posible iniciar sesi\u00f3n.');
+        mostrarError('login', error.message || 'No fue posible iniciar sesión.');
         estadoBoton(btnLogin, false, 'Ingresar al sistema');
         password.focus();
         password.select();
@@ -111,11 +121,11 @@ async function sendingRegister(event) {
     if (!agree.checked) { marcarCampo(agree, true); invalido = true; } else { marcarCampo(agree, false); }
 
     if (invalido) {
-        mostrarError('register', 'Por favor, revise los campos marcados y acepte los t\u00e9rminos.');
+        mostrarError('register', 'Por favor, revise los campos marcados y acepte los términos.');
         return;
     }
 
-    estadoBoton(btnRegister, true, 'Creando cuenta');
+    estadoBoton(btnRegister, true, 'Crear cuenta y continuar');
     try {
         limpiarSesionPreservandoAccesibilidad();
 
@@ -126,17 +136,23 @@ async function sendingRegister(event) {
             email: email.value.trim(),
             password: password.value
         });
-        announce(`Cuenta creada correctamente. Bienvenido, ${resultado.USUARIO.nombres}.`, 'polite');
+        const usuario = resultado.usuario || resultado.USUARIO || {
+            dni: dniLimpio,
+            nombres: nombresLimpio,
+            email: email.value.trim(),
+            rol: 'PACIENTE'
+        };
 
-        saveSession(resultado.token, resultado.USUARIO);
+        announce(`Cuenta creada correctamente. Bienvenido, ${usuario.nombres}.`, 'polite');
+        saveSession(resultado.token, usuario);
 
-        btnRegister.textContent = 'Cuenta creada. Redirigiendo...';
+        btnRegister.textContent = 'Cuenta creada. Redirigiendo…';
         window.setTimeout(() => {
             window.location.assign('Minsa.html');
         }, 800);
     } catch (error) {
         mostrarError('register', error.message || 'No fue posible crear la cuenta.');
-        estadoBoton(btnRegister, false, 'Creando cuenta');
+        estadoBoton(btnRegister, false, 'Crear cuenta y continuar');
     }
 }
 
@@ -145,7 +161,8 @@ if (formRegister) { formRegister.addEventListener('submit', sendingRegister); }
 
 document.querySelectorAll('.demo-user').forEach(btn => {
     btn.addEventListener('click', (e) => {
-        const indice = parseInt(e.target.dataset.indice, 10);
+        const boton = e.currentTarget;
+        const indice = parseInt(boton.dataset.indice, 10);
         const demo = DEMO_USERS[indice];
         if (!demo) return;
 
@@ -155,7 +172,8 @@ document.querySelectorAll('.demo-user').forEach(btn => {
         identInput.value = demo.identificador;
         passInput.value = demo.password;
 
-        document.getElementById('tab-login').click();
+        const tabLogin = document.getElementById('tab-login');
+        if (tabLogin) tabLogin.click();
 
         identInput.parentElement.classList.add('highlight');
         passInput.parentElement.classList.add('highlight');
