@@ -16,9 +16,7 @@
             var prefs = JSON.parse(localStorage.getItem('minsa_a11y_preferences') || '{}');
             if (prefs.contraste) { document.documentElement.classList.add('high-contrast'); }
             if (prefs.textoGrande) { document.documentElement.classList.add('large-text', 'texto-grande'); }
-        } catch (error) {
-            /* Sin preferencias guardadas se usa el tema institucional por defecto. */
-        }
+        } catch (error) {}
     </script>
 </head>
 <body>
@@ -40,10 +38,7 @@
                     <span aria-hidden="true">◐</span> Alto contraste
                 </button>
                 <button type="button" id="btn-text" class="tool-btn" aria-pressed="false">
-                    <span aria-hidden="true">A+</span> Texto grande
-                </button>
-                <button type="button" id="btn-speak" class="tool-btn" aria-pressed="false" aria-label="Escuchar la página actual en voz alta">
-                    <span aria-hidden="true">🔊</span> Escuchar página
+                    <span aria-hidden="true">A+</span> Aumentar texto
                 </button>
             </div>
         </div>
@@ -61,8 +56,13 @@
     <main id="contenido" tabindex="-1">
         <section class="hero" aria-labelledby="titulo-principal">
             <div class="container hero-grid">
-                <div>
-                    <p class="eyebrow">MINSA · Accesibilidad universal</p>
+                <div class="readable-section" id="hero-section-read">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+                        <p class="eyebrow" style="margin: 0;">MINSA · Accesibilidad universal</p>
+                        <button type="button" class="btn-read-section tool-btn" aria-label="Escuchar sección principal" data-target="hero-section-read">
+                            <span aria-hidden="true">🔊</span> Escuchar sección
+                        </button>
+                    </div>
                     <h1 id="titulo-principal">Su cita médica, sin barreras y sin filas</h1>
                     <p class="lead">
                         Reserve, reprograme, cancele y consulte sus citas en los hospitales de Lima
@@ -74,24 +74,36 @@
                         <a class="btn btn-secondary" href="login.html#registro">Crear cuenta de paciente</a>
                     </div>
                 </div>
-                <aside class="hero-panel" aria-labelledby="titulo-compromisos">
-                    <h2 id="titulo-compromisos">Compromisos de accesibilidad</h2>
+                <aside class="hero-panel readable-section" id="compromisos-section-read" aria-labelledby="titulo-compromisos">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+                        <h2 id="titulo-compromisos" style="margin: 0;">Compromisos de accesibilidad</h2>
+                        <button type="button" class="btn-read-section tool-btn" aria-label="Escuchar sección compromisos" data-target="compromisos-section-read">
+                            <span aria-hidden="true">🔊</span> Escuchar sección
+                        </button>
+                    </div>
                     <ul>
                         <li><strong>WCAG 2.1 AA/AAA:</strong> contraste alto, foco visible y etiquetas explícitas.</li>
                         <li><strong>Independencia del color:</strong> cada estado incluye icono y texto.</li>
                         <li><strong>Navegación por teclado:</strong> Tab, Enter, Espacio y flechas en todo el flujo.</li>
-                        <li><strong>Lectura en voz alta:</strong> síntesis de voz en español peruano.</li>
+                        <li><strong>Lectura en voz alta:</strong> síntesis de voz en español peruano segmentada por bloques.</li>
                         <li><strong>Dos roles:</strong> paciente y administrador MINSA.</li>
                     </ul>
                 </aside>
             </div>
         </section>
 
-        <section class="section" aria-labelledby="titulo-roles">
+        <section class="section readable-section" id="roles-section-read" aria-labelledby="titulo-roles">
             <div class="container">
-                <div class="section-head">
-                    <p class="eyebrow">Acceso por rol</p>
-                    <h2 id="titulo-roles">¿Cómo desea ingresar?</h2>
+                <div class="section-head" style="position: relative;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                        <div>
+                            <p class="eyebrow">Acceso por rol</p>
+                            <h2 id="titulo-roles">¿Cómo desea ingresar?</h2>
+                        </div>
+                        <button type="button" class="btn-read-section tool-btn" aria-label="Escuchar sección de roles" data-target="roles-section-read">
+                            <span aria-hidden="true">🔊</span> Escuchar sección
+                        </button>
+                    </div>
                     <p class="lead">Cada portal muestra únicamente las funciones autorizadas para su rol.</p>
                 </div>
                 <div class="grid grid-2">
@@ -111,11 +123,18 @@
             </div>
         </section>
 
-        <section class="section" aria-labelledby="titulo-funciones">
+        <section class="section readable-section" id="funciones-section-read" aria-labelledby="titulo-funciones">
             <div class="container">
                 <div class="section-head">
-                    <p class="eyebrow">Flujo asistencial</p>
-                    <h2 id="titulo-funciones">Todo el proceso de atención en un solo lugar</h2>
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                        <div>
+                            <p class="eyebrow">Flujo asistencial</p>
+                            <h2 id="titulo-funciones">Todo el proceso de atención en un solo lugar</h2>
+                        </div>
+                        <button type="button" class="btn-read-section tool-btn" aria-label="Escuchar sección de flujo asistencial" data-target="funciones-section-read">
+                            <span aria-hidden="true">🔊</span> Escuchar sección
+                        </button>
+                    </div>
                 </div>
                 <div class="grid grid-4">
                     <article class="feature-card">
@@ -141,37 +160,6 @@
                 </div>
             </div>
         </section>
-
-        <section class="section" aria-labelledby="titulo-accesibilidad">
-            <div class="container">
-                <div class="card">
-                    <div class="section-head">
-                        <p class="eyebrow">Inclusión digital</p>
-                        <h2 id="titulo-accesibilidad">Controles de accesibilidad siempre disponibles</h2>
-                        <p class="lead">Use los botones de la cabecera en cualquier página del sistema.</p>
-                    </div>
-                    <div class="grid grid-3">
-                        <div>
-                            <h3>◐ Alto contraste</h3>
-                            <p>Activa fondo negro y texto amarillo (#000000 / #FFD400) para mejorar la legibilidad.</p>
-                        </div>
-                        <div>
-                            <h3>A+ Texto grande</h3>
-                            <p>Incrementa la tipografía base a 1.25rem y conserva el diseño adaptativo.</p>
-                        </div>
-                        <div>
-                            <h3>🔊 Escuchar página</h3>
-                            <p>Lee el contenido con la Web Speech API en español peruano (es-PE) y permite detener la lectura.</p>
-                        </div>
-                    </div>
-                    <hr class="divider">
-                    <p class="help">
-                        El sistema respeta la configuración de movimiento reducido del sistema operativo y
-                        mantiene un foco visible de 4px sólido #D97706 en todos los controles interactivos.
-                    </p>
-                </div>
-            </div>
-        </section>
     </main>
 
     <footer class="site-footer">
@@ -189,7 +177,7 @@
             </div>
             <div>
                 <h2>Accesibilidad</h2>
-                <p>WCAG 2.1 AA/AAA · Navegación por teclado · Lectura en voz alta · Contraste reforzado.</p>
+                <p>WCAG 2.1 AA/AAA · Navegación por teclado · Lectura en voz alta segmentada · Contraste reforzado.</p>
             </div>
         </div>
     </footer>

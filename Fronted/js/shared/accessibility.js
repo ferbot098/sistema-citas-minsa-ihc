@@ -1,322 +1,267 @@
 /**
- * @file Utilidades de accesibilidad compartidas por todas las vistas MINSA.
- * @description Implementa los controles globales de alto contraste, texto grande
- * y lectura en voz alta con Web Speech API, además de regiones `aria-live`
- * reutilizables y utilidades de escapado de texto.
- * @module shared/accessibility
+ * @file Herramientas de accesibilidad y UI global (WCAG 2.1 AA/AAA)
+ * @module accessibility
  */
 
-/**
- * Clave de almacenamiento de preferencias de accesibilidad.
- * @type {string}
- */
-const STORAGE_KEY = 'minsa_a11y_preferences';
+export function announce(mensaje, prioridad = 'polite') {
+    const contenedor = document.getElementById(prioridad === 'assertive' ? 'aria-alertas' : 'aria-estado');
+    if (contenedor) {
+        contenedor.textContent = '';
+        setTimeout(() => {
+            contenedor.textContent = mensaje;
+        }, 50);
+    }
+}
 
-/**
- * Estado de los controles de accesibilidad.
- * @type {{ contraste: boolean, textoGrande: boolean, hablando: boolean }}
- */
-const estado = {
-    contraste: false,
-    textoGrande: false,
-    hablando: false
-};
+export function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
 
-/**
- * Lee las preferencias guardadas en `localStorage`.
- * @returns {{ contraste: boolean, textoGrande: boolean }} Preferencias.
- */
-function leerPreferencias() {
+export function mostrarError(prefix, mensaje) {
+    const alerta = document.getElementById(`${prefix}-alert`);
+    const texto = document.getElementById(`${prefix}-alert-texto`);
+    if (alerta && texto) {
+        texto.textContent = mensaje;
+        alerta.hidden = false;
+        announce(mensaje, 'assertive');
+    }
+}
+
+export function ocultarError(prefix) {
+    const alerta = document.getElementById(`${prefix}-alert`);
+    if (alerta) alerta.hidden = true;
+}
+
+export function estadoBoton(boton, cargando, textoOriginal) {
+    if (!boton) return;
+    boton.disabled = cargando;
+    boton.textContent = cargando ? 'Procesando…' : textoOriginal;
+    if (cargando) {
+        boton.setAttribute('aria-busy', 'true');
+    } else {
+        boton.removeAttribute('aria-busy');
+    }
+}
+
+export function marcarCampo(campo, invalido) {
+    if (!campo) return;
+    if (invalido) {
+        campo.setAttribute('aria-invalid', 'true');
+    } else {
+        campo.removeAttribute('aria-invalid');
+    }
+}
+
+export function formatFecha(fechaIso) {
+    if (!fechaIso) return '';
     try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) {
-            return { contraste: false, textoGrande: false };
-        }
-        const data = JSON.parse(raw);
-        return {
-            contraste: Boolean(data.contraste),
-            textoGrande: Boolean(data.textoGrande)
-        };
+        const partes = fechaIso.split('-').map(Number);
+        const fecha = new Date(partes[0], partes[1] - 1, partes[2]);
+        return new Intl.DateTimeFormat('es-PE', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' }).format(fecha);
     } catch {
-        return { contraste: false, textoGrande: false };
+        return fechaIso;
     }
 }
 
-/**
- * Persiste las preferencias actuales.
- * @returns {void}
- */
-function guardarPreferencias() {
+export function formatHora(hora) {
+    if (!hora) return '';
     try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({
-            contraste: estado.contraste,
-            textoGrande: estado.textoGrande
-        }));
+        let [h, m] = hora.split(':');
+        h = parseInt(h, 10);
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        h = h % 12;
+        h = h ? h : 12;
+        return `${h.toString().padStart(2, '0')}:${m} ${ampm}`;
     } catch {
-        /* El almacenamiento puede estar deshabilitado; no se interrumpe la UI. */
+        return hora;
     }
 }
 
-/**
- * Aplica las clases visuales y el estado `aria-pressed` de los botones.
- * @returns {void}
- */
-function aplicarPreferencias() {
-    const root = document.documentElement;
-    root.classList.toggle('high-contrast', estado.contraste);
-    root.classList.toggle('large-text', estado.textoGrande);
-    root.classList.toggle('texto-grande', estado.textoGrande);
-
-    const btnContraste = document.getElementById('btn-contrast');
-    if (btnContraste) {
-        btnContraste.setAttribute('aria-pressed', String(estado.contraste));
-    }
-
-    const btnTexto = document.getElementById('btn-text');
-    if (btnTexto) {
-        btnTexto.setAttribute('aria-pressed', String(estado.textoGrande));
-    }
-
-    const btnHablar = document.getElementById('btn-speak');
-    if (btnHablar) {
-        btnHablar.setAttribute('aria-pressed', String(estado.hablando));
-    }
+export function formatDateTime(fecha, hora) {
+    return `${formatFecha(fecha)} · ${formatHora(hora)}`;
 }
 
-/**
- * Devuelve o crea una región dinámica `aria-live`.
- * @param {string} id Identificador de la región.
- * @param {'polite'|'assertive'} nivel Nivel de anuncio.
- * @returns {HTMLElement} Región lista para escribir.
- */
-function obtenerRegion(id, nivel) {
-    let region = document.getElementById(id);
-    if (!region) {
-        region = document.createElement('div');
-        region.id = id;
-        region.className = 'sr-only';
-        region.setAttribute('aria-live', nivel);
-        region.setAttribute('aria-atomic', 'true');
-        region.setAttribute('role', nivel === 'assertive' ? 'alert' : 'status');
-        document.body.appendChild(region);
-    }
-    return region;
-}
-
-/**
- * Anuncia un mensaje a lectores de pantalla mediante una región `aria-live`.
- * @param {string} message Mensaje a anunciar.
- * @param {'polite'|'assertive'} [politeness='polite'] Nivel de prioridad.
- * @returns {void}
- */
-export function announce(message, politeness = 'polite') {
-    const texto = String(message ?? '').trim();
-    if (!texto) {
-        return;
-    }
-    const region = politeness === 'assertive'
-        ? obtenerRegion('aria-alertas', 'assertive')
-        : obtenerRegion('aria-estado', 'polite');
-
-    region.textContent = '';
-    window.setTimeout(() => {
-        region.textContent = texto;
-    }, 80);
-}
-
-/**
- * Escapa caracteres especiales para inyectar texto de forma segura en HTML.
- * @param {unknown} value Valor a escapar.
- * @returns {string} Texto seguro.
- */
-export function escapeHtml(value) {
-    return String(value ?? '').replace(/[&<>"']/g, (character) => {
-        /** @type {Record<string, string>} */
-        const mapa = {
-            '&': '&amp;',
-            '<': '&lt;',
-            '>': '&gt;',
-            '"': '&quot;',
-            "'": '&#39;'
-        };
-        return mapa[character];
+export function initDialogs() {
+    document.querySelectorAll('[data-cerrar-dialog]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const dialog = document.getElementById(e.target.dataset.cerrarDialog);
+            if (dialog) dialog.close();
+        });
     });
 }
 
-/**
- * Divide un texto largo en fragmentos aptos para `speechSynthesis`.
- * @param {string} text Texto completo.
- * @param {number} [maxLength=180] Longitud máxima por fragmento.
- * @returns {string[]} Fragmentos de texto.
- */
-function dividirTexto(text, maxLength = 180) {
-    const limpio = text.replace(/\s+/g, ' ').trim();
-    if (!limpio) {
-        return [];
+export function openDialog(id) {
+    const dialog = document.getElementById(id);
+    if (dialog && !dialog.open) {
+        dialog.showModal();
     }
-    const oraciones = limpio.match(/[^.!?]+[.!?]?/g) || [limpio];
-    /** @type {string[]} */
-    const fragmentos = [];
-    let actual = '';
-
-    oraciones.forEach((oracion) => {
-        const pieza = oracion.trim();
-        if (!pieza) {
-            return;
-        }
-        if ((actual + ' ' + pieza).trim().length > maxLength && actual) {
-            fragmentos.push(actual.trim());
-            actual = pieza;
-        } else {
-            actual = `${actual} ${pieza}`.trim();
-            if (actual.length > maxLength) {
-                fragmentos.push(actual.slice(0, maxLength));
-                actual = actual.slice(maxLength);
-            }
-        }
-    });
-
-    if (actual.trim()) {
-        fragmentos.push(actual.trim());
-    }
-    return fragmentos;
 }
 
-/**
- * Extrae el texto visible de la región principal de la página.
- * @returns {string} Texto plano.
- */
-function obtenerTextoPrincipal() {
-    const main = document.querySelector('main');
-    const fuente = main || document.body;
-    return (fuente.innerText || fuente.textContent || '').replace(/\s+/g, ' ').trim();
+export function closeDialog(id) {
+    const dialog = document.getElementById(id);
+    if (dialog && dialog.open) {
+        dialog.close();
+    }
 }
 
+// Variables para la Web Speech API
+let speechUtterance = null;
+let isSpeaking = false;
+
 /**
- * Detiene la lectura en voz alta en curso.
- * @returns {void}
+ * Lee un texto en voz alta. Si ya está hablando, lo detiene.
+ * @param {string} text Texto a leer.
+ * @param {HTMLElement|null} triggerButton Botón que disparó la acción.
  */
-function detenerLectura() {
-    if ('speechSynthesis' in window) {
+export function speakText(text, triggerButton = null) {
+    // Si ya está hablando, detener la síntesis y resetear estados
+    if (window.speechSynthesis.speaking) {
         window.speechSynthesis.cancel();
+        isSpeaking = false;
+        resetAllReadButtons();
+        // Si el botón presionado fue el que ya estaba leyendo, solo detenemos la lectura
+        if (!text) return;
     }
-    estado.hablando = false;
-    aplicarPreferencias();
+
+    if (!text) return;
+
+    speechUtterance = new SpeechSynthesisUtterance(text);
+    speechUtterance.lang = 'es-PE';
+    speechUtterance.rate = 0.95; // Un poco más lento para mejor comprensión
+    
+    // Buscar voz en español
+    const voices = window.speechSynthesis.getVoices();
+    const spanishVoice = voices.find(v => v.lang.startsWith('es-') && (v.name.includes('Peru') || v.name.includes('Latin'))) || voices.find(v => v.lang.startsWith('es'));
+    if (spanishVoice) {
+        speechUtterance.voice = spanishVoice;
+    }
+
+    speechUtterance.onstart = () => {
+        isSpeaking = true;
+        if (triggerButton) {
+            triggerButton.innerHTML = '<span aria-hidden="true">⏹</span> Detener lectura';
+            triggerButton.setAttribute('aria-pressed', 'true');
+        }
+    };
+
+    speechUtterance.onend = () => {
+        isSpeaking = false;
+        resetAllReadButtons();
+    };
+
+    speechUtterance.onerror = () => {
+        isSpeaking = false;
+        resetAllReadButtons();
+    };
+
+    window.speechSynthesis.speak(speechUtterance);
 }
 
 /**
- * Lee la página actual en voz alta en español peruano.
- * @returns {void}
+ * Restaura el texto y estado de todos los botones de lectura.
  */
-function alternarLectura() {
-    if (!('speechSynthesis' in window)) {
-        announce('Su navegador no admite la lectura en voz alta. Puede usar las funciones de su lector de pantalla.', 'assertive');
-        return;
-    }
-
-    if (estado.hablando) {
-        detenerLectura();
-        announce('Lectura en voz alta detenida.', 'polite');
-        return;
-    }
-
-    const texto = obtenerTextoPrincipal();
-    if (!texto) {
-        announce('No se encontró contenido para leer en esta página.', 'assertive');
-        return;
-    }
-
-    const fragmentos = dividirTexto(texto);
-    if (fragmentos.length === 0) {
-        announce('No se encontró contenido para leer en esta página.', 'assertive');
-        return;
-    }
-
-    window.speechSynthesis.cancel();
-    estado.hablando = true;
-    aplicarPreferencias();
-    announce('Iniciando lectura de la página en voz alta.', 'polite');
-
-    fragmentos.forEach((fragmento, index) => {
-        const utterance = new SpeechSynthesisUtterance(fragmento);
-        utterance.lang = 'es-PE';
-        utterance.rate = 0.95;
-        utterance.pitch = 1;
-        utterance.onend = () => {
-            if (index === fragmentos.length - 1) {
-                estado.hablando = false;
-                aplicarPreferencias();
-                announce('Lectura de la página finalizada.', 'polite');
-            }
-        };
-        utterance.onerror = () => {
-            estado.hablando = false;
-            aplicarPreferencias();
-            announce('La lectura en voz alta se interrumpió. Intente nuevamente.', 'assertive');
-        };
-        window.speechSynthesis.speak(utterance);
+function resetAllReadButtons() {
+    document.querySelectorAll('.btn-read-section').forEach(btn => {
+        btn.innerHTML = '<span aria-hidden="true">🔊</span> Escuchar sección';
+        btn.setAttribute('aria-pressed', 'false');
     });
 }
 
 /**
- * Conecta los botones globales de accesibilidad declarados en la cabecera.
- * @returns {void}
- */
-function conectarControles() {
-    const btnContraste = document.getElementById('btn-contrast');
-    if (btnContraste && !btnContraste.dataset.bound) {
-        btnContraste.dataset.bound = 'true';
-        btnContraste.addEventListener('click', () => {
-            estado.contraste = !estado.contraste;
-            aplicarPreferencias();
-            guardarPreferencias();
-            announce(
-                estado.contraste ? 'Alto contraste activado.' : 'Alto contraste desactivado.',
-                'polite'
-            );
-        });
-    }
-
-    const btnTexto = document.getElementById('btn-text');
-    if (btnTexto && !btnTexto.dataset.bound) {
-        btnTexto.dataset.bound = 'true';
-        btnTexto.addEventListener('click', () => {
-            estado.textoGrande = !estado.textoGrande;
-            aplicarPreferencias();
-            guardarPreferencias();
-            announce(
-                estado.textoGrande ? 'Texto grande activado.' : 'Texto grande desactivado.',
-                'polite'
-            );
-        });
-    }
-
-    const btnHablar = document.getElementById('btn-speak');
-    if (btnHablar && !btnHablar.dataset.bound) {
-        btnHablar.dataset.bound = 'true';
-        btnHablar.addEventListener('click', alternarLectura);
-    }
-
-    window.addEventListener('pagehide', detenerLectura);
-}
-
-/**
- * Inicializa las preferencias guardadas y los controles de cabecera.
- * Es idempotente: puede invocarse varias veces sin duplicar eventos.
- * @returns {void}
+ * Inicializa herramientas de accesibilidad (contraste, texto y lector de pantalla por sección).
  */
 export function initAccessibility() {
-    const preferencias = leerPreferencias();
-    estado.contraste = preferencias.contraste;
-    estado.textoGrande = preferencias.textoGrande;
-    aplicarPreferencias();
-    conectarControles();
+    const prefs = JSON.parse(localStorage.getItem('minsa_a11y_preferences') || '{}');
+    const docEl = document.documentElement;
+
+    const btnContrast = document.getElementById('btn-contrast');
+    const btnText = document.getElementById('btn-text');
+    
+    // Cargar voces al inicio (es asíncrono en algunos navegadores)
+    if (window.speechSynthesis) {
+        window.speechSynthesis.getVoices();
+        window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+    }
+
+    // Configurar estado inicial
+    if (prefs.contraste) {
+        docEl.classList.add('high-contrast');
+        if (btnContrast) btnContrast.setAttribute('aria-pressed', 'true');
+    }
+    if (prefs.textoGrande) {
+        docEl.classList.add('large-text', 'texto-grande');
+        if (btnText) btnText.setAttribute('aria-pressed', 'true');
+    }
+
+    // Alto contraste
+    if (btnContrast) {
+        btnContrast.addEventListener('click', () => {
+            const isPressed = btnContrast.getAttribute('aria-pressed') === 'true';
+            btnContrast.setAttribute('aria-pressed', !isPressed);
+            docEl.classList.toggle('high-contrast', !isPressed);
+            
+            const currentPrefs = JSON.parse(localStorage.getItem('minsa_a11y_preferences') || '{}');
+            currentPrefs.contraste = !isPressed;
+            localStorage.setItem('minsa_a11y_preferences', JSON.stringify(currentPrefs));
+            
+            announce(`Modo de alto contraste ${!isPressed ? 'activado' : 'desactivado'}.`);
+        });
+    }
+
+    // Aumentar texto
+    if (btnText) {
+        btnText.addEventListener('click', () => {
+            const isPressed = btnText.getAttribute('aria-pressed') === 'true';
+            btnText.setAttribute('aria-pressed', !isPressed);
+            docEl.classList.toggle('large-text', !isPressed);
+            docEl.classList.toggle('texto-grande', !isPressed);
+            
+            const currentPrefs = JSON.parse(localStorage.getItem('minsa_a11y_preferences') || '{}');
+            currentPrefs.textoGrande = !isPressed;
+            localStorage.setItem('minsa_a11y_preferences', JSON.stringify(currentPrefs));
+            
+            announce(`Texto grande ${!isPressed ? 'activado' : 'desactivado'}.`);
+        });
+    }
+
+    // Escuchar secciones específicas
+    document.querySelectorAll('.btn-read-section').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const isThisButtonSpeaking = btn.getAttribute('aria-pressed') === 'true';
+            
+            // Si este mismo botón estaba leyendo, se detiene la lectura
+            if (isThisButtonSpeaking) {
+                speakText(null); 
+                return;
+            }
+
+            const targetId = btn.getAttribute('data-target');
+            const targetSection = document.getElementById(targetId);
+            
+            if (targetSection) {
+                // Clonamos la sección para limpiarla antes de leerla
+                const clone = targetSection.cloneNode(true);
+                // Removemos los botones de lectura del clon para que no lea "Escuchar sección"
+                clone.querySelectorAll('.btn-read-section').forEach(b => b.remove());
+                
+                // Extraer el texto limpio
+                const cleanText = clone.innerText || clone.textContent;
+                speakText(cleanText, btn);
+                announce('Iniciando lectura de la sección.');
+            }
+        });
+    });
+
+    // Detener lectura si se cambia de página o se cierra
+    window.addEventListener('beforeunload', () => {
+        if (window.speechSynthesis) window.speechSynthesis.cancel();
+    });
 }
 
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initAccessibility, { once: true });
-} else {
-    initAccessibility();
-}
-
-export { detenerLectura };
+initAccessibility();
