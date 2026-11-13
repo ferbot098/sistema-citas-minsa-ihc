@@ -72,7 +72,9 @@ const estado = {
     horario: null,
     citas: [],
     citaReprogramar: null,
-    citaCancelar: null
+    citaEditar: null,
+    mapaPaciente: null,
+    marcadorPaciente: null
 };
 
 const MAPA_ESTADOS = Object.freeze({
@@ -257,6 +259,62 @@ function renderHospitales() {
 }
 
 /**
+ * Inicializa el mapa Leaflet del hospital seleccionado.
+ * @returns {void}
+ */
+function inicializarMapaPaciente() {
+    if (typeof window.L === 'function' && !estado.mapaPaciente) {
+        const contenedor = document.getElementById('mapa-paciente');
+        if (!contenedor) return;
+        estado.mapaPaciente = window.L.map(contenedor, { scrollWheelZoom: false });
+        window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(estado.mapaPaciente);
+    }
+}
+
+/**
+ * Actualiza el mapa, la información textual y el enlace a Google Maps
+ * según el hospital seleccionado.
+ * @returns {void}
+ */
+function actualizarMapaHospital() {
+    const hospital = estado.hospital;
+    const contenedor = document.getElementById('mapa-hospital-contenedor');
+    const info = document.getElementById('mapa-hospital-info');
+    const enlace = document.getElementById('btn-abrir-gmaps-paciente');
+
+    if (!hospital || hospital.latitud === undefined || hospital.longitud === undefined) {
+        if (contenedor) contenedor.hidden = true;
+        return;
+    }
+
+    contenedor.hidden = false;
+    info.textContent = `${hospital.nombre} · ${hospital.distrito} · ${hospital.direccion} · Coordenadas: ${hospital.latitud}, ${hospital.longitud}.`;
+
+    const lat = Number(hospital.latitud);
+    const lng = Number(hospital.longitud);
+    if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
+        enlace.href = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+    } else {
+        enlace.href = '#';
+    }
+
+    inicializarMapaPaciente();
+    if (estado.mapaPaciente) {
+        if (estado.marcadorPaciente) {
+            estado.marcadorPaciente.setLatLng([lat, lng]);
+        } else {
+            estado.marcadorPaciente = window.L.marker([lat, lng]).addTo(estado.mapaPaciente)
+                .bindPopup(`<b>${escapeHtml(hospital.nombre)}</b><br>${escapeHtml(hospital.distrito)} · ${escapeHtml(hospital.direccion)}`);
+        }
+        estado.mapaPaciente.setView([lat, lng], 15);
+        setTimeout(() => estado.mapaPaciente.invalidateSize(), 200);
+    }
+}
+
+/**
  * Renderiza las especialidades del hospital seleccionado.
  * @returns {void}
  */
@@ -378,7 +436,7 @@ async function cargarMedicos() {
  * @returns {void}
  */
 function pintarResumen() {
-    const usuario = estado.usuario;
+    const usuario = estado.USUARIO;
     const hospital = estado.hospital;
     const especialidad = estado.especialidad;
     const horario = estado.horario;
@@ -391,6 +449,23 @@ function pintarResumen() {
     document.getElementById('resumen-medico').textContent = medico ? `${medico.nombre} (${medico.cmp})` : '—';
     document.getElementById('resumen-fecha').textContent = horario ? formatFecha(horario.dia) : '—';
     document.getElementById('resumen-hora').textContent = horario ? horario.hora : '—';
+
+    const hospitalResumen = document.getElementById('resumen-hospital');
+    if (hospital && hospital.latitud !== undefined && hospital.longitud !== undefined) {
+        const lat = Number(hospital.latitud);
+        const lng = Number(hospital.longitud);
+        if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
+            const enlace = document.createElement('a');
+            enlace.href = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+            enlace.target = '_blank';
+            enlace.rel = 'noopener noreferrer';
+            enlace.className = 'btn btn-secondary btn-small';
+            enlace.style.marginLeft = '0.5rem';
+            enlace.textContent = '📍 Ver ubicación en Google Maps';
+            hospitalResumen.textContent = hospital.nombre;
+            hospitalResumen.parentElement.appendChild(enlace);
+        }
+    }
 }
 
 /**
@@ -802,6 +877,7 @@ function conectarEventos() {
         document.getElementById('btn-paso-3-continuar').disabled = true;
         if (hospital) {
             announce(`Hospital seleccionado: ${hospital.nombre}.`, 'polite');
+            actualizarMapaHospital();
         }
     }
 

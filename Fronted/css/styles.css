@@ -656,6 +656,69 @@ html.high-contrast .btn-ghost {
 }
 
 /* ==========================================================================
+    Mapas Leaflet (Hospital del paciente + Red asistencial admin)
+    ========================================================================== */
+
+    .leaflet-container {
+        width: 100%;
+        height: 100%;
+        font-family: inherit;
+    }
+
+    #mapa-paciente,
+    #mapa-lugares-admin {
+        background: var(--surface-alt);
+    }
+
+    #mapa-hospital-contenedor {
+        margin-top: 1.25rem;
+        padding: 1rem;
+        border: 2px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--surface);
+    }
+
+    #mapa-hospital-contenedor h3 {
+        margin-top: 0;
+        margin-bottom: 0.5rem;
+    }
+
+    #mapa-hospital-info {
+        margin-bottom: 0.75rem;
+    }
+
+    #btn-abrir-gmaps-paciente {
+        margin-top: 0.75rem;
+    }
+
+    html.high-contrast .leaflet-container,
+    html.high-contrast .leaflet-tile-pane,
+    html.high-contrast .leaflet-pane {
+        background: #000000;
+    }
+
+    html.high-contrast .leaflet-popup-content-wrapper,
+    html.high-contrast .leaflet-popup-tip {
+        background: #000000;
+        color: #ffd400;
+        border-color: #ffd400;
+    }
+
+    html.high-contrast .leaflet-popup-content {
+        color: #ffd400;
+    }
+
+    html.high-contrast #mapa-paciente,
+    html.high-contrast #mapa-lugares-admin {
+        border-color: #ffd400;
+    }
+
+    html.high-contrast #mapa-hospital-contenedor {
+        border-color: #ffd400;
+        background: #000000;
+    }
+
+    /* ==========================================================================
     Pestañas accesibles (Dashboard + Login)
     ========================================================================== */
 

@@ -74,6 +74,11 @@ function initDashboardTabs() {
             }
             announce(`Sección ${tab.textContent.trim()} cargada.`, 'polite');
         }
+
+        // Si se activa la pestaña de Lugares, forzar redimensionamiento del mapa
+        if (targetId === 'panel-lugares' && estado.mapaAdmin) {
+            setTimeout(() => estado.mapaAdmin.invalidateSize(), 250);
+        }
     }
 
     tabs.forEach((tab) => {
@@ -133,7 +138,8 @@ const estado = {
     horariosAdmin: [],
     filtros: { periodo: '', especialidad: '' },
     charts: {},
-    citaCancelar: null
+    citaEliminar: null,
+    mapaAdmin: null
 };
 
 /**
@@ -940,18 +946,80 @@ function renderHospitales() {
 
     cuerpo.innerHTML = estado.hospitales.map((hospital) => {
         const especialidades = (hospital.especialidades || []).map((especialidad) => especialidad.nombre);
-        const coordenadas = `${Number(hospital.latitud).toFixed(4)}, ${Number(hospital.longitud).toFixed(4)}`;
+        const lat = Number(hospital.latitud);
+        const lng = Number(hospital.longitud);
+        const coordsValidas = !Number.isNaN(lat) && !Number.isNaN(lng);
+        const coordenadas = coordsValidas ? `${lat.toFixed(4)}, ${lng.toFixed(4)}` : '—';
+        const enlaceMaps = coordsValidas
+            ? `<a class="btn btn-secondary btn-small" href="https://www.google.com/maps/search/?api=1&query=${lat},${lng}" target="_blank" rel="noopener noreferrer">📍 Ver mapa</a>`
+            : '—';
         return `
             <tr>
                 <th scope="row">${escapeHtml(hospital.nombre)}</th>
                 <td>${escapeHtml(hospital.red)}</td>
                 <td>${escapeHtml(hospital.distrito)}</td>
                 <td>${escapeHtml(hospital.direccion)}</td>
-                <td>${escapeHtml(coordenadas)}</td>
+                <td>${escapeHtml(coordenadas)}${coordsValidas ? `<br>${enlaceMaps}` : ''}</td>
                 <td>${especialidades.length === 0 ? '—' : escapeHtml(especialidades.join(', '))}</td>
             </tr>
         `;
     }).join('');
+
+    // Renderizar mapa interactivo de todos los hospitales
+    renderMapaHospitales();
+}
+
+/**
+ * Inicializa o actualiza el mapa Leaflet con todos los hospitales registrados.
+ * @returns {void}
+ */
+function renderMapaHospitales() {
+    const contenedor = document.getElementById('mapa-lugares-admin');
+    if (!contenedor) return;
+
+    if (typeof window.L !== 'function') {
+        contenedor.innerHTML = '<p class="empty-state">La biblioteca de mapas no est\u00e1 disponible.</p>';
+        return;
+    }
+
+    if (!estado.mapaAdmin) {
+        estado.mapaAdmin = window.L.map(contenedor, { scrollWheelZoom: false });
+        window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(estado.mapaAdmin);
+    } else {
+        estado.mapaAdmin.eachLayer((capa) => {
+            if (capa instanceof window.L.Marker || capa instanceof window.L.Marker) {
+                estado.mapaAdmin.removeLayer(capa);
+            }
+        });
+        // Limpiar capas de marcadores previos (no elimina el tile layer)
+        estado.mapaAdmin.remove();
+        estado.mapaAdmin = window.L.map(contenedor, { scrollWheelZoom: false });
+        window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(estado.mapaAdmin);
+    }
+
+    const bounds = [];
+    estado.hospitales.forEach((hospital) => {
+        const lat = Number(hospital.latitud);
+        const lng = Number(hospital.longitud);
+        if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
+            bounds.push([lat, lng]);
+            window.L.marker([lat, lng]).addTo(estado.mapaAdmin)
+                .bindPopup(`<b>${escapeHtml(hospital.nombre)}</b><br>${escapeHtml(hospital.red)} · ${escapeHtml(hospital.distrito)}<br>${escapeHtml(hospital.direccion)}`);
+        }
+    });
+
+    if (bounds.length > 0) {
+        estado.mapaAdmin.fitBounds(bounds, { padding: [20, 20] });
+    } else {
+        estado.mapaAdmin.setView([-12.05, -77.05], 12);
+    }
+    setTimeout(() => estado.mapaAdmin.invalidateSize(), 200);
 }
 
 /**

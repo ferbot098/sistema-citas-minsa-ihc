@@ -10,6 +10,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <link rel="stylesheet" href="css/styles.css">
     <script>
         try {
@@ -450,11 +451,12 @@
                                 <button type="button" id="btn-recargar-hospitales" class="btn btn-secondary btn-small">Actualizar</button>
                             </div>
 
-                            <div id="hospitales-loading" class="loading-state">
-                                <span class="loading-spinner" aria-hidden="true"></span> Cargando lugares…
-                            </div>
-                            <p id="hospitales-empty" class="empty-state" hidden>No hay lugares registrados.</p>
-                            <div id="hospitales-tabla-contenedor" class="table-responsive" hidden>
+<div id="hospitales-loading" class="loading-state">
+                            <span class="loading-spinner" aria-hidden="true"></span> Cargando lugares…
+                        </div>
+                        <p id="hospitales-empty" class="empty-state" hidden>No hay lugares registrados.</p>
+                        <div id="mapa-lugares-admin" style="height: 260px; margin-bottom: 1rem; border-radius: 10px; border: 2px solid var(--border);" role="region" aria-label="Mapa de todos los hospitales registrados"></div>
+                        <div id="hospitales-tabla-contenedor" class="table-responsive" hidden>
                                 <table class="data-table">
                                     <caption id="caption-hospitales">Establecimientos de salud registrados</caption>
                                     <thead>
@@ -684,6 +686,7 @@
         </div>
     </footer>
 
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
     <script type="module" src="js/dashboard.js"></script>
 </body>
