@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -81,14 +81,27 @@
             <div class="split-view" style="grid-template-columns: 1fr; max-width: 600px; margin: 0 auto;">
                 <div class="split-form">
                     <div class="card card-tabs">
-                        <div class="tab-list" role="tablist" aria-label="Opciones de acceso">
-                            <button type="button" id="tab-login" class="tab-btn" role="tab" aria-selected="true" aria-controls="panel-login" tabindex="0">Iniciar sesión</button>
-                            <button type="button" id="tab-register" class="tab-btn" role="tab" aria-selected="false" aria-controls="panel-register" tabindex="-1">Crear cuenta de Paciente</button>
+<div class="access-mode-grid" role="tablist" aria-label="Opciones de acceso">
+                            <button type="button" id="tab-login" class="access-mode-card is-active" role="tab" aria-selected="true" aria-controls="panel-login" tabindex="0">
+                                <span class="access-mode-icon" aria-hidden="true">🔑</span>
+                                <span class="access-mode-title">Iniciar Sesión</span>
+                                <span class="access-mode-subtitle">Ya tengo una cuenta (Paciente o Administrador)</span>
+                            </button>
+                            <button type="button" id="tab-register" class="access-mode-card" role="tab" aria-selected="false" aria-controls="panel-register" tabindex="-1">
+                                <span class="access-mode-icon" aria-hidden="true">📝</span>
+                                <span class="access-mode-title"> Crear Cuenta de Paciente</span>
+                                <span class="access-mode-subtitle">Soy nuevo y deseo registrarme para sacar citas</span>
+                            </button>
                         </div>
 
                         <!-- Panel: Iniciar sesión -->
-                        <div id="panel-login" class="tab-panel" role="tabpanel" aria-labelledby="tab-login" tabindex="0">
-                            <!-- Los contenidos internos se mostrarán con JS, manteniendo el contenedor principal -->
+                        <div id="panel-login" class="tab-panel is-active" role="tabpanel" aria-labelledby="tab-login" tabindex="0">
+                            <div class="panel-header login-header">
+                                <span class="panel-badge" aria-hidden="true">ACCESO</span>
+                                <h2>Iniciar Sesi\u00f3n</h2>
+                                <p> ingrese con su DNI, CMP o correo electr\u00f3nico y su contrase\u00f1a.</p>
+                            </div>
+                            
                             <div id="login-alert" class="alert alert-error" role="alert" hidden>
                                 <span class="alert-icon" aria-hidden="true">⚠️</span>
                                 <p id="login-alert-texto"></p>
@@ -117,12 +130,17 @@
                             <p class="help">Seleccione un perfil para completar el formulario con sus credenciales de prueba.</p>
                             <div class="btn-row" role="group" aria-label="Credenciales de demostración">
                                 <button type="button" class="btn btn-secondary btn-small demo-user" data-indice="0">Paciente Don Telmo</button>
-                                <button type="button" class="btn btn-secondary btn-small demo-user" data-indice="2">Personal Administrativo MINSA</button>
+                                <button type="button" class="btn btn-secondary btn-small demo-user" data-indice="1">Administrador MINSA</button>
                             </div>
                         </div>
 
                         <!-- Panel: Registrarse (Paciente) -->
                         <div id="panel-register" class="tab-panel" role="tabpanel" aria-labelledby="tab-register" tabindex="0" hidden>
+                            <div class="panel-header register-header">
+                                <span class="panel-badge" aria-hidden="true">REGISTRO</span>
+                                <h2> Crear Cuenta de Paciente</h2>
+                                <p>Complete sus datos para acceder al sistema de reservas del MINSA.</p>
+                            </div>
                             <div id="register-alert" class="alert alert-error" role="alert" hidden>
                                 <span class="alert-icon" aria-hidden="true">⚠️</span>
                                 <p id="register-alert-texto"></p>
@@ -228,7 +246,7 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const tabs = document.querySelectorAll('.tab-btn');
+            const tabs = document.querySelectorAll('.access-mode-card');
             const panels = document.querySelectorAll('.tab-panel');
 
             // Función para cambiar de pestaña activa
@@ -238,6 +256,7 @@
                     const isSelected = t.id === tabId;
                     t.setAttribute('aria-selected', isSelected);
                     t.tabIndex = isSelected ? 0 : -1;
+                    t.classList.toggle('is-active', isSelected);
                 });
                 
                 // 2. Mostrar el panel correspondiente y ocultar el otro

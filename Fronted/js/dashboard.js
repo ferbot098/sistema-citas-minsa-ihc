@@ -25,19 +25,8 @@ import { initAccessibility, announce, escapeHtml } from './shared/accessibility.
 
 // ---- Guardia de ruta estricta ----
 (function validarAccesoAdmin() {
-    let session = null;
-    try {
-        const raw = localStorage.getItem('minsa_session');
-        session = raw ? JSON.parse(raw) : null;
-    } catch {
-        session = null;
-    }
-
-    const token = session && typeof session.token === 'string' ? session.token : null;
-    const usuario = session && session.usuario ? session.usuario : null;
-
-    if (!token || !usuario || usuario.rol !== 'ADMIN') {
-        window.location.replace('login.html');
+    const usuario = requireRole(['ADMIN']);
+    if (!usuario) {
         throw new Error('Acceso denegado: se requiere rol ADMIN.');
     }
 })();

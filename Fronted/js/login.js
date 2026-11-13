@@ -1,5 +1,5 @@
-import { login, registerPaciente } from './services/apiClient.js';
-import { ROL_LABELS } from './config/api.config.js';
+﻿import { login, registerPaciente, saveSession, clearSession, getHomeForUser } from './services/apiClient.js';
+import { ROL_LABELS, DEMO_USERS } from './config/api.config.js';
 import { mostrarError, ocultarError, estadoBoton, marcarCampo, announce } from './shared/accessibility.js';
 
 const btnLogin = document.getElementById('btn-login');
@@ -7,12 +7,26 @@ const formLogin = document.getElementById('form-login');
 const btnRegister = document.getElementById('btn-register');
 const formRegister = document.getElementById('form-register');
 
+function limpiarSesionPreservandoAccesibilidad() {
+    try {
+        const prefs = JSON.parse(localStorage.getItem('minsa_a11y_preferences') || '{}');
+        localStorage.clear();
+        sessionStorage.clear();
+        if (prefs && Object.keys(prefs).length) {
+            localStorage.setItem('minsa_a11y_preferences', JSON.stringify(prefs));
+        }
+    } catch (e) {
+        localStorage.clear();
+        sessionStorage.clear();
+    }
+}
+
 const checkSession = () => {
     if (window.location.hash === '#registro') return;
     try {
         const session = JSON.parse(localStorage.getItem('minsa_session'));
-        if (session && session.token && session.usuario) {
-            const dest = session.usuario.rol === 'ADMIN' ? 'dashboard.html' : 'Minsa.html';
+        if (session && session.token && session.USUARIO) {
+            const dest = session.USUARIO.rol === 'ADMIN' ? 'dashboard.html' : 'Minsa.html';
             window.location.replace(dest);
         }
     } catch (e) {}
@@ -43,32 +57,30 @@ async function sendingLogin(event) {
     }
 
     if (invalido) {
-        mostrarError('login', 'Complete su identificador y su contraseña para continuar.');
+        mostrarError('login', 'Complete su identificador y su contrase\u00f1a para continuar.');
         (identificadorLimpio ? password : identificador).focus();
         return;
     }
 
     estadoBoton(btnLogin, true, 'Ingresar al sistema');
     try {
+        limpiarSesionPreservandoAccesibilidad();
+
         const resultado = await login({ identificador: identificadorLimpio, password: password.value });
-        const usuario = resultado.usuario;
+        const usuario = resultado.USUARIO;
         const rol = ROL_LABELS[usuario.rol] || usuario.rol;
         announce(`Acceso correcto. Bienvenido, ${usuario.nombres}. Rol ${rol}.`, 'polite');
 
-        // LIMPIEZA TOTAL DEL LOCAL STORAGE ANTES DE ASIGNAR SESIÓN (Evita que roles se pisen)
-        localStorage.clear();
-        sessionStorage.clear();
-        localStorage.setItem('minsa_session', JSON.stringify(resultado));
+        saveSession(resultado.token, resultado.USUARIO);
 
-        const destino = usuario.rol === 'ADMIN' ? 'dashboard.html' : 'Minsa.html';
-        
+        const destino = getHomeForUser[usuario.rol] || (usuario.rol === 'ADMIN' ? 'dashboard.html' : 'Minsa.html');
         estadoBoton(btnLogin, true, 'Ingresar al sistema');
-        btnLogin.textContent = 'Acceso correcto. Redirigiendo…';
+        btnLogin.textContent = 'Acceso correcto. Redirigiendo...';
         window.setTimeout(() => {
             window.location.assign(destino);
         }, 700);
     } catch (error) {
-        mostrarError('login', error.message || 'No fue posible iniciar sesión.');
+        mostrarError('login', error.message || 'No fue posible iniciar sesi\u00f3n.');
         estadoBoton(btnLogin, false, 'Ingresar al sistema');
         password.focus();
         password.select();
@@ -99,12 +111,14 @@ async function sendingRegister(event) {
     if (!agree.checked) { marcarCampo(agree, true); invalido = true; } else { marcarCampo(agree, false); }
 
     if (invalido) {
-        mostrarError('register', 'Por favor, revise los campos marcados y acepte los términos.');
+        mostrarError('register', 'Por favor, revise los campos marcados y acepte los t\u00e9rminos.');
         return;
     }
 
-    estadoBoton(btnRegister, true, 'Crear cuenta y continuar');
+    estadoBoton(btnRegister, true, 'Creando cuenta');
     try {
+        limpiarSesionPreservandoAccesibilidad();
+
         const resultado = await registerPaciente({
             dni: dniLimpio,
             nombres: nombresLimpio,
@@ -112,19 +126,17 @@ async function sendingRegister(event) {
             email: email.value.trim(),
             password: password.value
         });
-        announce(`Cuenta creada correctamente. Bienvenido, ${resultado.usuario.nombres}.`, 'polite');
-        
-        localStorage.clear();
-        sessionStorage.clear();
-        localStorage.setItem('minsa_session', JSON.stringify(resultado));
+        announce(`Cuenta creada correctamente. Bienvenido, ${resultado.USUARIO.nombres}.`, 'polite');
 
-        btnRegister.textContent = 'Cuenta creada. Redirigiendo…';
+        saveSession(resultado.token, resultado.USUARIO);
+
+        btnRegister.textContent = 'Cuenta creada. Redirigiendo...';
         window.setTimeout(() => {
             window.location.assign('Minsa.html');
         }, 800);
     } catch (error) {
         mostrarError('register', error.message || 'No fue posible crear la cuenta.');
-        estadoBoton(btnRegister, false, 'Crear cuenta y continuar');
+        estadoBoton(btnRegister, false, 'Creando cuenta');
     }
 }
 
@@ -134,19 +146,17 @@ if (formRegister) { formRegister.addEventListener('submit', sendingRegister); }
 document.querySelectorAll('.demo-user').forEach(btn => {
     btn.addEventListener('click', (e) => {
         const indice = parseInt(e.target.dataset.indice, 10);
+        const demo = DEMO_USERS[indice];
+        if (!demo) return;
+
         const identInput = document.getElementById('identificador');
         const passInput = document.getElementById('password');
-        
-        if (indice === 1 || indice === 2) { 
-             identInput.value = 'admin@minsa.gob.pe';
-             passInput.value = 'admin123';
-        } else {
-             identInput.value = '01812548';
-             passInput.value = '123456';
-        }
-        
+
+        identInput.value = demo.identificador;
+        passInput.value = demo.password;
+
         document.getElementById('tab-login').click();
-        
+
         identInput.parentElement.classList.add('highlight');
         passInput.parentElement.classList.add('highlight');
         setTimeout(() => {
