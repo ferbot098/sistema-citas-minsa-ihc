@@ -231,18 +231,23 @@
             const tabs = document.querySelectorAll('.tab-btn');
             const panels = document.querySelectorAll('.tab-panel');
 
+            // Función para cambiar de pestaña activa
             function selectTab(tabId) {
+                // 1. Actualizar el estado visual y de accesibilidad de los botones
                 tabs.forEach(t => {
                     const isSelected = t.id === tabId;
                     t.setAttribute('aria-selected', isSelected);
                     t.tabIndex = isSelected ? 0 : -1;
                 });
+                
+                // 2. Mostrar el panel correspondiente y ocultar el otro
+                const targetPanelId = tabId === 'tab-login' ? 'panel-login' : 'panel-register';
                 panels.forEach(p => {
-                    // La corrección exacta: reemplazar "tab-" por "panel-" para buscar el ID
-                    p.hidden = p.id !== tabId.replace('tab-', 'panel-');
+                    p.hidden = p.id !== targetPanelId;
                 });
             }
 
+            // Asignar eventos de clic y teclado a las pestañas
             tabs.forEach(tab => {
                 tab.addEventListener('click', () => selectTab(tab.id));
                 tab.addEventListener('keydown', (e) => {
@@ -254,14 +259,14 @@
                 });
             });
 
-            // Si la URL viene con #registro o el usuario hace click en el nav "Registrarme"
+            // Lógica de ruteo inicial por URL
             if (window.location.hash === '#registro') {
                 selectTab('tab-register');
             } else {
                 selectTab('tab-login');
             }
 
-            // Detecta cuando el usuario hace clic en el enlace desde la navegación estando en la misma página
+            // Lógica de ruteo si cambia la URL sin recargar
             window.addEventListener('hashchange', () => {
                 if (window.location.hash === '#registro') {
                     selectTab('tab-register');
@@ -270,6 +275,7 @@
                 }
             });
 
+            // Botón de mostrar/ocultar contraseña
             document.querySelectorAll('.toggle-password').forEach(btn => {
                 btn.addEventListener('click', () => {
                     const input = document.getElementById(btn.getAttribute('aria-controls'));
@@ -280,6 +286,7 @@
                 });
             });
 
+            // Detectar si hay sesión activa para mostrar el banner superior
             try {
                 const session = JSON.parse(localStorage.getItem('minsa_session'));
                 if (session && session.token && session.usuario) {
@@ -304,7 +311,5 @@
             } catch(e) {}
         });
     </script>
-    <script type="module" src="js/shared/accessibility.js"></script>
-    <script type="module" src="js/login.js"></script>
 </body>
 </html>
