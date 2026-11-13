@@ -657,8 +657,8 @@ html.high-contrast .btn-ghost {
 }
 
 /* ==========================================================================
-   Pestañas accesibles
-   ========================================================================== */
+    Pestañas accesibles (Dashboard + Login)
+    ========================================================================== */
 
 .tab-list {
     display: flex;
@@ -691,6 +691,14 @@ html.high-contrast .btn-ghost {
     color: var(--primary-strong);
 }
 
+.tab-panel {
+    display: none;
+}
+
+.tab-panel.is-active {
+    display: block;
+}
+
 .tab-panel:focus-visible {
     outline: 4px solid var(--focus);
     outline-offset: 4px;
@@ -707,6 +715,125 @@ html.high-contrast .tab-btn[aria-selected='true'] {
 html.high-contrast .tab-btn:hover {
     background: #ffd400;
     color: #000000;
+}
+
+/* Dashboard tab bar (scrollable on small screens) */
+.dashboard-tabbar {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 0.2rem;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 2px solid var(--border);
+}
+
+.dashboard-tabbar::-webkit-scrollbar {
+    height: 8px;
+}
+
+.dashboard-tabbar::-webkit-scrollbar-thumb {
+    background: var(--border-strong);
+    border-radius: 999px;
+}
+
+.dashboard-tab {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.6rem 1rem;
+    background: transparent;
+    border: 2px solid transparent;
+    border-bottom: 4px solid transparent;
+    color: var(--muted);
+    font-family: inherit;
+    font-size: 0.92rem;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    border-radius: 8px 8px 0 0;
+}
+
+.dashboard-tab:hover {
+    background: var(--primary-soft);
+    color: var(--primary-strong);
+}
+
+.dashboard-tab[aria-selected='true'] {
+    background: var(--surface);
+    border-color: var(--border);
+    border-bottom-color: var(--primary-strong);
+    color: var(--primary-strong);
+}
+
+html.high-contrast .dashboard-tab {
+    color: #ffd400;
+}
+
+html.high-contrast .dashboard-tab[aria-selected='true'] {
+    background: #000000;
+    border-color: #ffd400;
+    border-bottom-color: #ffd400;
+    color: #ffd400;
+}
+
+html.high-contrast .dashboard-tab:hover {
+    background: #ffd400;
+    color: #000000;
+}
+
+/* Split view para CRUDs (Grid 2 columnas) */
+.split-view {
+    display: grid;
+    gap: 2rem;
+    grid-template-columns: 350px 1fr;
+    align-items: start;
+}
+
+.split-form {
+    position: sticky;
+    top: 6rem;
+}
+
+.split-table {
+    width: 100%;
+}
+
+/* Filtros alineados por la base (flex-end) */
+.filters {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+    align-items: end;
+    padding: 1.1rem;
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 1.5rem;
+}
+
+.filters .field {
+    margin-bottom: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.filters .btn-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    align-items: flex-end;
+}
+
+/* Contenedor de tab content del dashboard */
+.dashboard-tab-content {
+    min-height: 50vh;
+}
+
+/* Ocultar secciones cuando no son la pestaña activa */
+.dashboard-section[hidden] {
+    display: none;
 }
 
 /* ==========================================================================
@@ -1583,6 +1710,16 @@ html.high-contrast dialog::backdrop {
     .form-grid,
     .receta-row {
         grid-template-columns: 1fr;
+    }
+
+    /* Split view colapsa a 1 columna en móviles */
+    .split-view {
+        grid-template-columns: 1fr;
+        gap: 1.25rem;
+    }
+
+    .split-form {
+        position: static;
     }
 
     .stepper {
