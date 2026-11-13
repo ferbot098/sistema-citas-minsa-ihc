@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Portal del personal asistencial del Sistema Inclusivo de Citas Médicas del MINSA: agenda médica, registro de atención y publicación de horarios.">
+    <meta name="theme-color" content="#005a6b">
+    <title>Portal del Personal | Sistema Inclusivo de Citas Médicas - MINSA</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+    <script>
+        try {
+            var prefs = JSON.parse(localStorage.getItem('minsa_a11y_preferences') || '{}');
+            if (prefs.contraste) { document.documentElement.classList.add('high-contrast'); }
+            if (prefs.textoGrande) { document.documentElement.classList.add('large-text', 'texto-grande'); }
+        } catch (error) {
+            /* Sin preferencias guardadas se usa el tema institucional por defecto. */
+        }
+    </script>
+</head>
+<body>
+    <a class="skip-link" href="#contenido">Saltar al contenido principal</a>
+    <div id="aria-alertas" class="sr-only" aria-live="assertive" aria-atomic="true" role="alert"></div>
+    <div id="aria-estado" class="sr-only" aria-live="polite" aria-atomic="true" role="status"></div>
+
+    <header class="site-header">
+        <div class="container header-inner">
+            <a class="brand" href="index.html" aria-label="MINSA, ir al inicio">
+                <span class="brand-mark" aria-hidden="true">✚</span>
+                <span>
+                    <span class="brand-title">MINSA</span>
+                    <span class="brand-subtitle">Portal del Personal Asistencial</span>
+                </span>
+            </a>
+            <div class="header-actions" role="group" aria-label="Herramientas de accesibilidad">
+                <span class="user-chip"><span aria-hidden="true">🩺</span> <strong id="chip-usuario">Personal</strong></span>
+                <button type="button" id="btn-contrast" class="tool-btn" aria-pressed="false">
+                    <span aria-hidden="true">◐</span> Alto contraste
+                </button>
+                <button type="button" id="btn-text" class="tool-btn" aria-pressed="false">
+                    <span aria-hidden="true">A+</span> Texto grande
+                </button>
+                <button type="button" id="btn-speak" class="tool-btn" aria-pressed="false" aria-label="Escuchar la página actual en voz alta">
+                    <span aria-hidden="true">🔊</span> Escuchar página
+                </button>
+                <button type="button" id="btn-logout" class="tool-btn">Cerrar sesión</button>
+            </div>
+        </div>
+        <nav class="main-nav" aria-label="Navegación del portal del personal">
+            <div class="container">
+                <ul>
+                    <li><a href="#agenda" aria-current="page">Mi agenda</a></li>
+                    <li><a href="#horarios">Mis horarios</a></li>
+                    <li><a href="index.html">Inicio</a></li>
+                </ul>
+            </div>
+        </nav>
+    </header>
+
+    <main id="contenido" tabindex="-1">
+        <div class="container page-shell">
+            <section class="section" aria-labelledby="titulo-empleado">
+                <p class="eyebrow">Personal asistencial</p>
+                <h1 id="titulo-empleado">Hola, <span id="nombre-empleado">personal de salud</span></h1>
+                <p class="lead">
+                    Consulte su agenda asignada, registre la atención de cada cita y publique nuevos
+                    bloques horarios para que los pacientes puedan reservar.
+                </p>
+                <p id="resumen-agenda" class="status" aria-live="polite"></p>
+            </section>
+
+            <section class="section" aria-labelledby="titulo-kpis-empleado">
+                <h2 id="titulo-kpis-empleado" class="sr-only">Resumen de mi agenda</h2>
+                <div class="kpi-grid">
+                    <article class="kpi-card">
+                        <span class="kpi-label">Citas asignadas</span>
+                        <strong class="kpi-value" id="kpi-asignadas">—</strong>
+                        <span class="kpi-note">Total de citas en su agenda médica.</span>
+                    </article>
+                    <article class="kpi-card">
+                        <span class="kpi-label">Citas activas</span>
+                        <strong class="kpi-value" id="kpi-activas">—</strong>
+                        <span class="kpi-note">Reservadas o reprogramadas pendientes.</span>
+                    </article>
+                    <article class="kpi-card">
+                        <span class="kpi-label">Atendidas</span>
+                        <strong class="kpi-value" id="kpi-atendidas">—</strong>
+                        <span class="kpi-note">Atenciones médicas completadas.</span>
+                    </article>
+                    <article class="kpi-card">
+                        <span class="kpi-label">Inasistencias</span>
+                        <strong class="kpi-value" id="kpi-inasistencias">—</strong>
+                        <span class="kpi-note">Pacientes que no se presentaron.</span>
+                    </article>
+                </div>
+            </section>
+
+            <section id="agenda" class="section" aria-labelledby="titulo-agenda">
+                <div class="card">
+                    <div class="card-head">
+                        <div>
+                            <p class="eyebrow">Agenda médica</p>
+                            <h2 id="titulo-agenda">Citas asignadas</h2>
+                            <p class="card-subtitle">Solo se muestran las citas que pertenecen a su agenda profesional.</p>
+                        </div>
+                        <button type="button" id="btn-recargar-agenda" class="btn btn-secondary btn-small">Actualizar agenda</button>
+                    </div>
+
+                    <form id="form-filtros-agenda" class="filters" aria-label="Filtros de la agenda médica">
+                        <div class="field">
+                            <label for="filtro-estado">Filtrar por estado</label>
+                            <select class="form-select" id="filtro-estado">
+                                <option value="">Todos los estados</option>
+                                <option value="RESERVADA">Reservada</option>
+                                <option value="REPROGRAMADA">Reprogramada</option>
+                                <option value="ATENDIDA">Atendida</option>
+                                <option value="CANCELADA">Cancelada</option>
+                                <option value="INASISTENCIA">Inasistencia</option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label for="filtro-fecha">Filtrar por fecha</label>
+                            <input class="form-control" type="date" id="filtro-fecha">
+                        </div>
+                        <div class="btn-row">
+                            <button type="button" id="btn-limpiar-filtros" class="btn btn-secondary">Limpiar filtros</button>
+                        </div>
+                    </form>
+
+                    <div id="agenda-alert" class="alert alert-info" role="status" hidden>
+                        <span class="alert-icon" aria-hidden="true">ℹ️</span>
+                        <p id="agenda-alert-texto"></p>
+                    </div>
+
+                    <div id="agenda-loading" class="loading-state">
+                        <span class="loading-spinner" aria-hidden="true"></span> Cargando su agenda médica…
+                    </div>
+
+                    <p id="agenda-empty" class="empty-state" hidden>No se encontraron citas con los filtros seleccionados.</p>
+
+                    <div id="agenda-tabla-contenedor" class="table-responsive" hidden>
+                        <table class="data-table">
+                            <caption id="caption-agenda">Agenda médica del personal asistencial</caption>
+                            <thead>
+                                <tr>
+                                    <th scope="col">Código</th>
+                                    <th scope="col">Fecha y hora</th>
+                                    <th scope="col">Paciente</th>
+                                    <th scope="col">Hospital</th>
+                                    <th scope="col">Especialidad</th>
+                                    <th scope="col">Estado</th>
+                                    <th scope="col">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cuerpo-agenda"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <section id="horarios" class="section" aria-labelledby="titulo-horarios">
+                <div class="card">
+                    <div class="card-head">
+                        <div>
+                            <p class="eyebrow">Disponibilidad</p>
+                            <h2 id="titulo-horarios">Mis horarios de atención</h2>
+                            <p class="card-subtitle">Publique bloques de atención para que los pacientes puedan reservarlos en línea.</p>
+                        </div>
+                        <button type="button" id="btn-recargar-horarios" class="btn btn-secondary btn-small">Actualizar horarios</button>
+                    </div>
+
+                    <div id="horarios-alert" class="alert alert-info" role="status" hidden>
+                        <span class="alert-icon" aria-hidden="true">ℹ️</span>
+                        <p id="horarios-alert-texto"></p>
+                    </div>
+
+                    <form id="form-horario" class="form-grid" novalidate>
+                        <div class="field">
+                            <label for="fecha-horario">Fecha del bloque</label>
+                            <input class="form-control" type="date" id="fecha-horario" required aria-describedby="ayuda-fecha-horario">
+                            <p id="ayuda-fecha-horario" class="help">Seleccione el día de atención.</p>
+                        </div>
+                        <div class="field">
+                            <label for="hora-horario">Hora de inicio</label>
+                            <input class="form-control" type="time" id="hora-horario" required aria-describedby="ayuda-hora-horario">
+                            <p id="ayuda-hora-horario" class="help">Se registrará en formato de 12 horas, por ejemplo 08:30 AM.</p>
+                        </div>
+                        <div class="field field-full">
+                            <button type="submit" id="btn-publicar-horario" class="btn btn-primary">Publicar bloque horario</button>
+                        </div>
+                    </form>
+
+                    <h3>Bloques publicados</h3>
+                    <div id="horarios-loading" class="loading-state">
+                        <span class="loading-spinner" aria-hidden="true"></span> Cargando sus bloques horarios…
+                    </div>
+                    <p id="horarios-empty" class="empty-state" hidden>No tiene bloques horarios publicados todavía.</p>
+                    <div id="horarios-tabla-contenedor" class="table-responsive" hidden>
+                        <table class="data-table">
+                            <caption id="caption-horarios">Bloques horarios publicados por el profesional</caption>
+                            <thead>
+                                <tr>
+                                    <th scope="col">Fecha</th>
+                                    <th scope="col">Hora</th>
+                                    <th scope="col">Disponibilidad</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cuerpo-horarios"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <dialog id="dlg-atencion" aria-labelledby="titulo-dlg-atencion">
+        <div class="dialog-card">
+            <div class="dialog-head">
+                <h2 id="titulo-dlg-atencion" tabindex="-1">Registrar atención</h2>
+                <button type="button" class="dialog-close" data-cerrar-dialog="dlg-atencion" aria-label="Cerrar el diálogo de registro de atención">✕</button>
+            </div>
+            <p id="atencion-resumen" class="help"></p>
+            <div id="atencion-alert" class="alert alert-error" role="alert" hidden>
+                <span class="alert-icon" aria-hidden="true">⚠️</span>
+                <p id="atencion-alert-texto"></p>
+            </div>
+            <form id="form-atencion" novalidate>
+                <input type="hidden" id="atencion-cita-id">
+                <fieldset class="field">
+                    <legend>Resultado de la atención</legend>
+                    <div class="choice-grid">
+                        <label class="choice-card">
+                            <input type="radio" name="resultado-atencion" value="ATENDIDA">
+                            <span class="choice-body">
+                                <span class="choice-title">🩺 Atención completada</span>
+                                <span class="choice-meta">El paciente fue atendido en su consulta.</span>
+                            </span>
+                        </label>
+                        <label class="choice-card">
+                            <input type="radio" name="resultado-atencion" value="INASISTENCIA">
+                            <span class="choice-body">
+                                <span class="choice-title">⚠ Paciente no asistió</span>
+                                <span class="choice-meta">El paciente no se presentó a la cita.</span>
+                            </span>
+                        </label>
+                    </div>
+                </fieldset>
+                <div class="field" id="bloque-observacion">
+                    <label for="atencion-observacion">Observación clínica (opcional)</label>
+                    <textarea class="form-control" id="atencion-observacion" rows="3" maxlength="255" aria-describedby="ayuda-observacion"></textarea>
+                    <p id="ayuda-observacion" class="help">Registre el motivo de la inasistencia u observaciones de la cita.</p>
+                </div>
+
+                <div id="bloque-diagnostico" hidden>
+                    <fieldset class="field">
+                        <legend>Diagnóstico clínico</legend>
+                        <div class="form-grid">
+                            <div class="field">
+                                <label for="atencion-cie10">Código CIE-10</label>
+                                <input class="form-control" type="text" id="atencion-cie10" maxlength="10" placeholder="Ej. I10, H52.1" aria-describedby="ayuda-cie10">
+                                <p id="ayuda-cie10" class="help">Código de la Clasificación Internacional de Enfermedades (CIE-10).</p>
+                            </div>
+                            <div class="field field-full">
+                                <label for="atencion-descripcion">Diagnóstico</label>
+                                <textarea class="form-control" id="atencion-descripcion" rows="3" maxlength="500" aria-describedby="ayuda-descripcion"></textarea>
+                                <p id="ayuda-descripcion" class="help">Describa el diagnóstico médico del paciente.</p>
+                            </div>
+                            <div class="field field-full">
+                                <label for="atencion-indicaciones">Indicaciones generales (opcional)</label>
+                                <textarea class="form-control" id="atencion-indicaciones" rows="2" maxlength="500"></textarea>
+                            </div>
+                        </div>
+                    </fieldset>
+                    <fieldset class="field">
+                        <legend>Medicamentos recetados</legend>
+                        <p id="receta-ayuda" class="help">Agregue los medicamentos prescritos con dosis, frecuencia y días de tratamiento. Es opcional si el diagnóstico no requiere receta.</p>
+                        <div id="receta-items"></div>
+                        <button type="button" id="btn-agregar-medicamento" class="btn btn-secondary btn-small" aria-describedby="receta-ayuda">Agregar medicamento</button>
+                    </fieldset>
+                </div>
+                <div class="btn-row">
+                    <button type="submit" id="btn-confirmar-atencion" class="btn btn-primary">Guardar resultado</button>
+                    <button type="button" class="btn btn-secondary" data-cerrar-dialog="dlg-atencion">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </dialog>
+
+    <dialog id="dlg-cancelar-agenda" aria-labelledby="titulo-dlg-cancelar-agenda">
+        <div class="dialog-card">
+            <div class="dialog-head">
+                <h2 id="titulo-dlg-cancelar-agenda" tabindex="-1">Cancelar cita</h2>
+                <button type="button" class="dialog-close" data-cerrar-dialog="dlg-cancelar-agenda" aria-label="Cerrar el diálogo de cancelación de cita">✕</button>
+            </div>
+            <p id="cancelar-agenda-resumen" class="help"></p>
+            <div id="cancelar-agenda-alert" class="alert alert-error" role="alert" hidden>
+                <span class="alert-icon" aria-hidden="true">⚠️</span>
+                <p id="cancelar-agenda-alert-texto"></p>
+            </div>
+            <form id="form-cancelar-agenda" novalidate>
+                <input type="hidden" id="cancelar-agenda-cita-id">
+                <div class="field">
+                    <label for="cancelar-agenda-motivo">Motivo de la cancelación (opcional)</label>
+                    <textarea class="form-control" id="cancelar-agenda-motivo" rows="3" maxlength="255"></textarea>
+                </div>
+                <div class="btn-row">
+                    <button type="submit" id="btn-confirmar-cancelar-agenda" class="btn btn-danger">Confirmar cancelación</button>
+                    <button type="button" class="btn btn-secondary" data-cerrar-dialog="dlg-cancelar-agenda">Conservar cita</button>
+                </div>
+            </form>
+        </div>
+    </dialog>
+
+    <footer class="site-footer">
+        <div class="container footer-grid">
+            <div>
+                <h2>MINSA</h2>
+                <p>Portal del personal asistencial para la gestión de la agenda médica.</p>
+            </div>
+            <div>
+                <h2>Accesos</h2>
+                <ul>
+                    <li><a href="index.html">Inicio</a></li>
+                    <li><a href="#agenda">Mi agenda</a></li>
+                    <li><a href="#horarios">Mis horarios</a></li>
+                </ul>
+            </div>
+            <div>
+                <h2>Accesibilidad</h2>
+                <p>WCAG 2.1 AA/AAA · Navegación por teclado · Lectura en voz alta · Contraste reforzado.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script type="module" src="js/empleado.js"></script>
+</body>
+</html>
