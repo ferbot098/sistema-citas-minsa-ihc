@@ -16,9 +16,7 @@
             var prefs = JSON.parse(localStorage.getItem('minsa_a11y_preferences') || '{}');
             if (prefs.contraste) { document.documentElement.classList.add('high-contrast'); }
             if (prefs.textoGrande) { document.documentElement.classList.add('large-text', 'texto-grande'); }
-        } catch (error) {
-            /* Sin preferencias guardadas se usa el tema institucional por defecto. */
-        }
+        } catch (error) {}
     </script>
 </head>
 <body>
@@ -52,14 +50,8 @@
         <nav class="main-nav" aria-label="Navegación del dashboard administrativo">
             <div class="container">
                 <ul>
-                    <li><a href="#indicadores" aria-current="page">Indicadores</a></li>
-                    <li><a href="#citas">Citas</a></li>
-                    <li><a href="#personal">Personal</a></li>
-                    <li><a href="#lugares">Lugares</a></li>
-                    <li><a href="#medicamentos">Medicamentos</a></li>
-                    <li><a href="#horarios">Horarios</a></li>
-                    <li><a href="Minsa.html">Portal paciente</a></li>
                     <li><a href="index.html">Inicio</a></li>
+                    <li><a href="login.html">Acceso</a></li>
                 </ul>
             </div>
         </nav>
@@ -77,146 +69,172 @@
                 <p id="resumen-filtros" class="status" aria-live="polite"></p>
             </section>
 
-            <section id="indicadores" class="section" aria-labelledby="titulo-indicadores">
-                <div class="card-head">
-                    <div>
-                        <p class="eyebrow">Indicadores</p>
-                        <h2 id="titulo-indicadores">Resumen de la red asistencial</h2>
-                        <p class="card-subtitle">Filtre por periodo y especialidad para actualizar los cuatro indicadores y las tres gráficas.</p>
-                    </div>
-                </div>
+            <!-- Barra de pestañas -->
+            <div class="dashboard-tabbar" role="tablist" aria-label="Secciones del dashboard">
+                <button type="button" class="dashboard-tab" id="tab-indicadores" role="tab" aria-selected="true" aria-controls="panel-indicadores" tabindex="0">
+                    <span aria-hidden="true">📊</span> Indicadores
+                </button>
+                <button type="button" class="dashboard-tab" id="tab-citas" role="tab" aria-selected="false" aria-controls="panel-citas" tabindex="-1">
+                    <span aria-hidden="true">📅</span> Citas
+                </button>
+                <button type="button" class="dashboard-tab" id="tab-personal" role="tab" aria-selected="false" aria-controls="panel-personal" tabindex="-1">
+                    <span aria-hidden="true">👤</span> Personal
+                </button>
+                <button type="button" class="dashboard-tab" id="tab-lugares" role="tab" aria-selected="false" aria-controls="panel-lugares" tabindex="-1">
+                    <span aria-hidden="true">🏥</span> Lugares
+                </button>
+                <button type="button" class="dashboard-tab" id="tab-medicamentos" role="tab" aria-selected="false" aria-controls="panel-medicamentos" tabindex="-1">
+                    <span aria-hidden="true">💊</span> Medicamentos
+                </button>
+                <button type="button" class="dashboard-tab" id="tab-horarios" role="tab" aria-selected="false" aria-controls="panel-horarios" tabindex="-1">
+                    <span aria-hidden="true">⏰</span> Horarios
+                </button>
+            </div>
 
-                <form id="form-filtros-dashboard" class="filters" aria-label="Filtros de los indicadores">
-                    <div class="field">
-                        <label for="periodo-dashboard">Periodo</label>
-                        <input class="form-control" type="month" id="periodo-dashboard" aria-describedby="ayuda-periodo">
-                        <p id="ayuda-periodo" class="help">Déjelo vacío para incluir todos los meses.</p>
-                    </div>
-                    <div class="field">
-                        <label for="especialidad-dashboard">Especialidad</label>
-                        <select class="form-select" id="especialidad-dashboard">
-                            <option value="">Todas las especialidades</option>
-                        </select>
-                    </div>
-                    <div class="btn-row">
-                        <button type="submit" id="btn-aplicar-filtros" class="btn btn-primary">Aplicar filtros</button>
-                        <button type="button" id="btn-limpiar-filtros-dashboard" class="btn btn-secondary">Restablecer</button>
-                    </div>
-                </form>
-
-                <div id="dashboard-alert" class="alert alert-error" role="alert" hidden>
-                    <span class="alert-icon" aria-hidden="true">⚠️</span>
-                    <p id="dashboard-alert-texto"></p>
-                </div>
-
-                <div id="dashboard-loading" class="loading-state">
-                    <span class="loading-spinner" aria-hidden="true"></span> Calculando indicadores y gráficos…
-                </div>
-
-                <div id="dashboard-contenido" hidden>
-                    <div class="kpi-grid" aria-label="Indicadores principales">
-                        <article class="kpi-card">
-                            <span class="kpi-label">Citas programadas</span>
-                            <strong class="kpi-value" id="kpi-programadas">—</strong>
-                            <span class="kpi-note" id="nota-programadas">Total de citas del periodo.</span>
-                        </article>
-                        <article class="kpi-card">
-                            <span class="kpi-label">Citas atendidas</span>
-                            <strong class="kpi-value" id="kpi-atendidas">—</strong>
-                            <span class="kpi-note" id="nota-atendidas">Atenciones completadas.</span>
-                        </article>
-                        <article class="kpi-card">
-                            <span class="kpi-label">Citas canceladas</span>
-                            <strong class="kpi-value" id="kpi-canceladas">—</strong>
-                            <span class="kpi-note" id="nota-canceladas">Reservas anuladas por el usuario o el personal.</span>
-                        </article>
-                        <article class="kpi-card">
-                            <span class="kpi-label">Tasa de inasistencia</span>
-                            <strong class="kpi-value" id="kpi-inasistencia">—</strong>
-                            <span class="kpi-note" id="nota-inasistencia">Porcentaje de pacientes que no asistieron.</span>
-                        </article>
+            <!-- Panel: Indicadores -->
+            <section id="panel-indicadores" class="dashboard-section dashboard-tab-content" role="tabpanel" aria-labelledby="tab-indicadores" tabindex="0">
+                <div class="card">
+                    <div class="card-head">
+                        <div>
+                            <p class="eyebrow">Indicadores</p>
+                            <h2 id="titulo-indicadores">Resumen de la red asistencial</h2>
+                            <p class="card-subtitle">Filtre por periodo y especialidad para actualizar los cuatro indicadores y las tres gráficas.</p>
+                        </div>
                     </div>
 
-                    <div class="chart-grid" style="margin-top: 1.25rem;">
-                        <article class="chart-card">
-                            <h3 id="titulo-grafico-especialidad">Citas por especialidad</h3>
-                            <p class="help">Distribución de las citas registradas según la especialidad médica.</p>
-                            <div class="chart-frame">
-                                <canvas id="grafico-especialidad" role="img" aria-describedby="resumen-grafico-especialidad"></canvas>
-                            </div>
-                            <p id="resumen-grafico-especialidad" class="chart-summary"></p>
-                            <details class="chart-data-table">
-                                <summary>Ver datos de la gráfica de especialidades</summary>
-                                <div class="table-responsive">
-                                    <table class="data-table">
-                                        <caption>Citas y porcentaje por especialidad</caption>
-                                        <thead>
-                                            <tr>
-                                                <th scope="col">Especialidad</th>
-                                                <th scope="col">Citas</th>
-                                                <th scope="col">Porcentaje</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="tabla-especialidad"></tbody>
-                                    </table>
+                    <form id="form-filtros-dashboard" class="filters" aria-label="Filtros de los indicadores">
+                        <div class="field">
+                            <label for="periodo-dashboard">Periodo</label>
+                            <input class="form-control" type="month" id="periodo-dashboard" aria-describedby="ayuda-periodo">
+                            <p id="ayuda-periodo" class="help">Déjelo vacío para incluir todos los meses.</p>
+                        </div>
+                        <div class="field">
+                            <label for="especialidad-dashboard">Especialidad</label>
+                            <select class="form-select" id="especialidad-dashboard">
+                                <option value="">Todas las especialidades</option>
+                            </select>
+                        </div>
+                        <div class="btn-row">
+                            <button type="submit" id="btn-aplicar-filtros" class="btn btn-primary">Aplicar filtros</button>
+                            <button type="button" id="btn-limpiar-filtros-dashboard" class="btn btn-secondary">Restablecer</button>
+                        </div>
+                    </form>
+
+                    <div id="dashboard-alert" class="alert alert-error" role="alert" hidden>
+                        <span class="alert-icon" aria-hidden="true">⚠️</span>
+                        <p id="dashboard-alert-texto"></p>
+                    </div>
+
+                    <div id="dashboard-loading" class="loading-state">
+                        <span class="loading-spinner" aria-hidden="true"></span> Calculando indicadores y gráficos…
+                    </div>
+
+                    <div id="dashboard-contenido" hidden>
+                        <div class="kpi-grid" aria-label="Indicadores principales">
+                            <article class="kpi-card">
+                                <span class="kpi-label">Citas programadas</span>
+                                <strong class="kpi-value" id="kpi-programadas">—</strong>
+                                <span class="kpi-note" id="nota-programadas">Total de citas del periodo.</span>
+                            </article>
+                            <article class="kpi-card">
+                                <span class="kpi-label">Citas atendidas</span>
+                                <strong class="kpi-value" id="kpi-atendidas">—</strong>
+                                <span class="kpi-note" id="nota-atendidas">Atenciones completadas.</span>
+                            </article>
+                            <article class="kpi-card">
+                                <span class="kpi-label">Citas canceladas</span>
+                                <strong class="kpi-value" id="kpi-canceladas">—</strong>
+                                <span class="kpi-note" id="nota-canceladas">Reservas anuladas por el usuario o el personal.</span>
+                            </article>
+                            <article class="kpi-card">
+                                <span class="kpi-label">Tasa de inasistencia</span>
+                                <strong class="kpi-value" id="kpi-inasistencia">—</strong>
+                                <span class="kpi-note" id="nota-inasistencia">Porcentaje de pacientes que no asistieron.</span>
+                            </article>
+                        </div>
+
+                        <div class="chart-grid" style="margin-top: 1.25rem;">
+                            <article class="chart-card">
+                                <h3 id="titulo-grafico-especialidad">Citas por especialidad</h3>
+                                <p class="help">Distribución de las cita registradas según la especialidad médica.</p>
+                                <div class="chart-frame">
+                                    <canvas id="grafico-especialidad" role="img" aria-describedby="resumen-grafico-especialidad"></canvas>
                                 </div>
-                            </details>
-                        </article>
+                                <p id="resumen-grafico-especialidad" class="chart-summary"></p>
+                                <details class="chart-data-table">
+                                    <summary>Ver datos de la gráfica de especialidades</summary>
+                                    <div class="table-responsive">
+                                        <table class="data-table">
+                                            <caption>Citas y porcentaje por especialidad</caption>
+                                            <thead>
+                                                <tr>
+                                                    <th scope="col">Especialidad</th>
+                                                    <th scope="col">Citas</th>
+                                                    <th scope="col">Porcentaje</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="tabla-especialidad"></tbody>
+                                        </table>
+                                    </div>
+                                </details>
+                            </article>
 
-                        <article class="chart-card">
-                            <h3 id="titulo-grafico-evolucion">Evolución mensual</h3>
-                            <p class="help">Citas programadas y atendidas a lo largo de los meses.</p>
-                            <div class="chart-frame">
-                                <canvas id="grafico-evolucion" role="img" aria-describedby="resumen-grafico-evolucion"></canvas>
-                            </div>
-                            <p id="resumen-grafico-evolucion" class="chart-summary"></p>
-                            <details class="chart-data-table">
-                                <summary>Ver datos de la evolución mensual</summary>
-                                <div class="table-responsive">
-                                    <table class="data-table">
-                                        <caption>Citas programadas y atendidas por mes</caption>
-                                        <thead>
-                                            <tr>
-                                                <th scope="col">Mes</th>
-                                                <th scope="col">Programadas</th>
-                                                <th scope="col">Atendidas</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="tabla-evolucion"></tbody>
-                                    </table>
+                            <article class="chart-card">
+                                <h3 id="titulo-grafico-evolucion">Evolución mensual</h3>
+                                <p class="help">Citas programadas y atendidas a lo largo de los meses.</p>
+                                <div class="chart-frame">
+                                    <canvas id="grafico-evolucion" role="img" aria-describedby="resumen-grafico-evolucion"></canvas>
                                 </div>
-                            </details>
-                        </article>
+                                <p id="resumen-grafico-evolucion" class="chart-summary"></p>
+                                <details class="chart-data-table">
+                                    <summary>Ver datos de la evolución mensual</summary>
+                                    <div class="table-responsive">
+                                        <table class="data-table">
+                                            <caption>Citas programadas y atendidas por mes</caption>
+                                            <thead>
+                                                <tr>
+                                                    <th scope="col">Mes</th>
+                                                    <th scope="col">Programadas</th>
+                                                    <th scope="col">Atendidas</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="tabla-evolucion"></tbody>
+                                        </table>
+                                    </div>
+                                </details>
+                            </article>
 
-                        <article class="chart-card">
-                            <h3 id="titulo-grafico-estados">Distribución por estado</h3>
-                            <p class="help">Estado actual de todas las citas incluidas en el filtro.</p>
-                            <div class="chart-frame">
-                                <canvas id="grafico-estados" role="img" aria-describedby="resumen-grafico-estados"></canvas>
-                            </div>
-                            <p id="resumen-grafico-estados" class="chart-summary"></p>
-                            <details class="chart-data-table">
-                                <summary>Ver datos de la distribución por estado</summary>
-                                <div class="table-responsive">
-                                    <table class="data-table">
-                                        <caption>Citas y porcentaje por estado</caption>
-                                        <thead>
-                                            <tr>
-                                                <th scope="col">Estado</th>
-                                                <th scope="col">Citas</th>
-                                                <th scope="col">Porcentaje</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="tabla-estados"></tbody>
-                                    </table>
+                            <article class="chart-card">
+                                <h3 id="titulo-grafico-estados">Distribución por estado</h3>
+                                <p class="help">Estado actual de todas las citas incluidas en el filtro.</p>
+                                <div class="chart-frame">
+                                    <canvas id="grafico-estados" role="img" aria-describedby="resumen-grafico-estados"></canvas>
                                 </div>
-                            </details>
-                        </article>
+                                <p id="resumen-grafico-estados" class="chart-summary"></p>
+                                <details class="chart-data-table">
+                                    <summary>Ver datos de la distribución por estado</summary>
+                                    <div class="table-responsive">
+                                        <table class="data-table">
+                                            <caption>Citas y porcentaje por estado</caption>
+                                            <thead>
+                                                <tr>
+                                                    <th scope="col">Estado</th>
+                                                    <th scope="col">Citas</th>
+                                                    <th scope="col">Porcentaje</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="tabla-estados"></tbody>
+                                        </table>
+                                    </div>
+                                </details>
+                            </article>
+                        </div>
                     </div>
                 </div>
             </section>
 
-            <section id="citas" class="section" aria-labelledby="titulo-citas-admin">
+            <!-- Panel: Citas -->
+            <section id="panel-citas" class="dashboard-section dashboard-tab-content" role="tabpanel" aria-labelledby="tab-citas" tabindex="0" hidden>
                 <div class="card">
                     <div class="card-head">
                         <div>
@@ -224,7 +242,7 @@
                             <h2 id="titulo-citas-admin">Todas las citas del sistema</h2>
                             <p class="card-subtitle">Visualice cualquier cita y cancele las que sigan activas.</p>
                         </div>
-                        <button type="button" id="btn-recargar-citas-admin" class="btn btn-secondary btn-small">Actualizar citas</button>
+                        <button type="button" id="btn-recargar-citas-admin" class="btn btn-secondary btn-small">Actual</button>
                     </div>
 
                     <div id="citas-alert" class="alert alert-info" role="status" hidden>
@@ -236,11 +254,11 @@
                         <span class="loading-spinner" aria-hidden="true"></span> Cargando todas las citas…
                     </div>
 
-                    <p id="citas-empty" class="empty-state" hidden>No hay citas registradas en el sistema.</p>
+                    <p id="citas-empty" class="empty-state" hidden>No hay cita registradas en el sistema.</p>
 
                     <div id="citas-tabla-contenedor" class="table-responsive" hidden>
                         <table class="data-table">
-                            <caption id="caption-citas-admin">Citas registradas en el sistema</caption>
+                            <caption id="caption-citas-admin">Cita registradas en el sistema</caption>
                             <thead>
                                 <tr>
                                     <th scope="col">Código</th>
@@ -259,306 +277,362 @@
                 </div>
             </section>
 
-            <section id="personal" class="section" aria-labelledby="titulo-personal">
-                <div class="card">
-                    <div class="card-head">
-                        <div>
-                            <p class="eyebrow">Gestión institucional</p>
-                            <h2 id="titulo-personal">Personal y cuentas del sistema</h2>
-                            <p class="card-subtitle">Cree cuentas de personal asistencial o administradores y consulte los usuarios registrados.</p>
+            <!-- Panel: Personal (Split View) -->
+            <section id="panel-personal" class="dashboard-section dashboard-tab-content" role="tabpanel" aria-labelledby="tab-personal" tabindex="0" hidden>
+                <div class="split-view">
+                    <div class="split-form">
+                        <div class="card">
+                            <div class="card-head">
+                                <div>
+                                    <p class="eyebrow">Gestión institucional</p>
+                                    <h2 id="titulo-personal">Nueva cuenta institucional</h2>
+                                    <p class="card-subtitle">Cree cuentas de personal asistencial o administradores.</p>
+                                </div>
+                            </div>
+
+                            <div id="personal-alert" class="alert alert-info" role="status" hidden>
+                                <span class="alert-icon" aria-hidden="true">ℹ️</span>
+                                <p id="personal-alert-texto"></p>
+                            </div>
+
+                            <form id="form-staff" class="form-grid" novalidate>
+                                <div class="field">
+                                    <label for="staff-dni">DNI</label>
+                                    <input class="form-control" type="text" id="staff-dni" inputmode="numeric" maxlength="8" pattern="[0-9]{8}" required aria-describedby="ayuda-staff-dni">
+                                    <p id="ayuda-staff-dni" class="help">Exactamente 8 dígitos numéricos.</p>
+                                </div>
+                                <div class="field">
+                                    <label for="staff-nombres">Nombres y apellidos</label>
+                                    <input class="form-control" type="text" id="staff-nombres" maxlength="150" required>
+                                </div>
+                                <div class="field">
+                                    <label for="staff-email">Correo institucional</label>
+                                    <input class="form-control" type="email" id="staff-email" maxlength="150" required>
+                                </div>
+                                <div class="field">
+                                    <label for="staff-telefono">Teléfono (opcional)</label>
+                                    <input class="form-control" type="tel" id="staff-telefono" maxlength="15" aria-describedby="ayuda-staff-telefono">
+                                    <p id="ayuda-staff-telefono" class="help">Si se omite se registra el teléfono institucional por defecto.</p>
+                                </div>
+                                <div class="field">
+                                    <label for="staff-password">Contraseña inicial</label>
+                                    <input class="form-control" type="password" id="staff-password" minlength="4" autocomplete="new-password" required aria-describedby="ayuda-staff-password">
+                                    <p id="ayuda-staff-password" class="help">Mínimo 4 caracteres.</p>
+                                </div>
+                                <div class="field">
+                                    <label for="staff-rol">Rol institucional</label>
+                                    <select class="form-select" id="staff-rol" required>
+                                        <option value="EMPLEADO">Personal asistencial (EMPLEADO)</option>
+                                        <option value="ADMIN">Administrador (ADMIN)</option>
+                                    </select>
+                                </div>
+                                <div class="field" id="campo-cmp-staff">
+                                    <label for="staff-cmp">CMP (opcional)</label>
+                                    <input class="form-control" type="text" id="staff-cmp" maxlength="20" aria-describedby="ayuda-staff-cmp">
+                                    <p id="ayuda-staff-cmp" class="help">Colegio Médico del Perú.</p>
+                                </div>
+                                <div class="field" id="campo-medico-staff">
+                                    <label for="staff-medico">Médico vinculado (opcional)</label>
+                                    <select class="form-select" id="staff-medico">
+                                        <option value="">Sin vínculo con un médico</option>
+                                    </select>
+                                    <p class="help">Vincule la cuenta a un médico para que pueda publicar horarios.</p>
+                                </div>
+                                <div class="field field-full">
+                                    <button type="submit" id="btn-crear-staff" class="btn btn-primary">Crear cuenta institucional</button>
+                                </div>
+                            </form>
                         </div>
-                        <button type="button" id="btn-recargar-usuarios" class="btn btn-secondary btn-small">Actualizar usuarios</button>
                     </div>
 
-                    <div id="personal-alert" class="alert alert-info" role="status" hidden>
-                        <span class="alert-icon" aria-hidden="true">ℹ️</span>
-                        <p id="personal-alert-texto"></p>
-                    </div>
+                    <div class="split-table">
+                        <div class="card">
+                            <div class="card-head">
+                                <div>
+                                    <p class="eyebrow">Gestión institucional</p>
+                                    <h2>Usuarios registrados</h2>
+                                    <p class="card-subtitle">Consulte las cuentas del sistema MINSA.</p>
+                                </div>
+                                <button type="button" id="btn-recargar-usuarios" class="btn btn-secondary btn-small">Actual</button>
+                            </div>
 
-                    <h3>Nueva cuenta institucional</h3>
-                    <form id="form-staff" class="form-grid" novalidate>
-                        <div class="field">
-                            <label for="staff-dni">DNI</label>
-                            <input class="form-control" type="text" id="staff-dni" inputmode="numeric" maxlength="8" pattern="[0-9]{8}" required aria-describedby="ayuda-staff-dni">
-                            <p id="ayuda-staff-dni" class="help">Exactamente 8 dígitos numéricos.</p>
+                            <div id="usuarios-loader" class="loading-state">
+                                <span class="loading-spinner" aria-hidden="true"></span> Cargando usuarios…
+                            </div>
+                            <p id="usuarios-empty" class="empty-state" hidden>No hay usuarios registrados.</p>
+                            <div id="usuarios-tabla-contenedor" class="table-responsive" hidden>
+                                <table class="data-table">
+                                    <caption id="caption-usuarios">Cuentas de usuario del sistema MINSA</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">Rol</th>
+                                            <th scope="col">DNI</th>
+                                            <th scope="col">Nombres</th>
+                                            <th scope="col">Correo</th>
+                                            <th scope="col">Teléfono</th>
+                                            <th scope="col">CMP</th>
+                                            <th scope="col">Médico vinculado</th>
+                                            <th scope="col">Estado</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="cuerpo-usuarios"></tbody>
+                                </table>
+                            </div>
                         </div>
-                        <div class="field">
-                            <label for="staff-nombres">Nombres y apellidos</label>
-                            <input class="form-control" type="text" id="staff-nombres" maxlength="150" required>
-                        </div>
-                        <div class="field">
-                            <label for="staff-email">Correo institucional</label>
-                            <input class="form-control" type="email" id="staff-email" maxlength="150" required>
-                        </div>
-                        <div class="field">
-                            <label for="staff-telefono">Teléfono (opcional)</label>
-                            <input class="form-control" type="tel" id="staff-telefono" maxlength="15" aria-describedby="ayuda-staff-telefono">
-                            <p id="ayuda-staff-telefono" class="help">Si se omite se registra el teléfono institucional por defecto.</p>
-                        </div>
-                        <div class="field">
-                            <label for="staff-password">Contraseña inicial</label>
-                            <input class="form-control" type="password" id="staff-password" minlength="4" autocomplete="new-password" required aria-describedby="ayuda-staff-password">
-                            <p id="ayuda-staff-password" class="help">Mínimo 4 caracteres.</p>
-                        </div>
-                        <div class="field">
-                            <label for="staff-rol">Rol institucional</label>
-                            <select class="form-select" id="staff-rol" required>
-                                <option value="EMPLEADO">Personal asistencial (EMPLEADO)</option>
-                                <option value="ADMIN">Administrador (ADMIN)</option>
-                            </select>
-                        </div>
-                        <div class="field" id="campo-cmp-staff">
-                            <label for="staff-cmp">CMP (opcional)</label>
-                            <input class="form-control" type="text" id="staff-cmp" maxlength="20" aria-describedby="ayuda-staff-cmp">
-                            <p id="ayuda-staff-cmp" class="help">Colegio Médico del Perú, por ejemplo CMP 45120.</p>
-                        </div>
-                        <div class="field" id="campo-medico-staff">
-                            <label for="staff-medico">Médico vinculado (opcional)</label>
-                            <select class="form-select" id="staff-medico">
-                                <option value="">Sin vínculo con un médico</option>
-                            </select>
-                            <p class="help">Vincule la cuenta a un médico para que pueda publicar horarios y gestionar su agenda.</p>
-                        </div>
-                        <div class="field field-full">
-                            <button type="submit" id="btn-crear-staff" class="btn btn-primary">Crear cuenta institucional</button>
-                        </div>
-                    </form>
-
-                    <hr class="divider">
-                    <h3>Usuarios registrados</h3>
-                    <div id="usuarios-loading" class="loading-state">
-                        <span class="loading-spinner" aria-hidden="true"></span> Cargando usuarios…
-                    </div>
-                    <p id="usuarios-empty" class="empty-state" hidden>No hay usuarios registrados.</p>
-                    <div id="usuarios-tabla-contenedor" class="table-responsive" hidden>
-                        <table class="data-table">
-                            <caption id="caption-usuarios">Cuentas de usuario del sistema MINSA</caption>
-                            <thead>
-                                <tr>
-                                    <th scope="col">Rol</th>
-                                    <th scope="col">DNI</th>
-                                    <th scope="col">Nombres</th>
-                                    <th scope="col">Correo</th>
-                                    <th scope="col">Teléfono</th>
-                                    <th scope="col">CMP</th>
-                                    <th scope="col">Médico vinculado</th>
-                                    <th scope="col">Estado</th>
-                                </tr>
-                            </thead>
-                            <tbody id="cuerpo-usuarios"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </section>
-
-            <section id="lugares" class="section" aria-labelledby="titulo-lugares">
-                <div class="card">
-                    <div class="card-head">
-                        <div>
-                            <p class="eyebrow">Red asistencial</p>
-                            <h2 id="titulo-lugares">Lugares de atención (establecimientos)</h2>
-                            <p class="card-subtitle">Registre nuevos establecimientos de salud y asócieles sus especialidades.</p>
-                        </div>
-                        <button type="button" id="btn-recargar-hospitales" class="btn btn-secondary btn-small">Actualizar lugares</button>
-                    </div>
-
-                    <div id="lugares-alert" class="alert alert-info" role="status" hidden>
-                        <span class="alert-icon" aria-hidden="true">ℹ️</span>
-                        <p id="lugares-alert-texto"></p>
-                    </div>
-
-                    <h3>Registrar lugar de atención</h3>
-                    <form id="form-hospital" class="form-grid" novalidate>
-                        <div class="field">
-                            <label for="hospital-nombre">Nombre del establecimiento</label>
-                            <input class="form-control" type="text" id="hospital-nombre" maxlength="150" required>
-                        </div>
-                        <div class="field">
-                            <label for="hospital-red">Red asistencial</label>
-                            <input class="form-control" type="text" id="hospital-red" maxlength="120" required>
-                        </div>
-                        <div class="field">
-                            <label for="hospital-distrito">Distrito</label>
-                            <input class="form-control" type="text" id="hospital-distrito" maxlength="120" required>
-                        </div>
-                        <div class="field">
-                            <label for="hospital-direccion">Dirección</label>
-                            <input class="form-control" type="text" id="hospital-direccion" maxlength="200" required>
-                        </div>
-                        <div class="field">
-                            <label for="hospital-latitud">Latitud</label>
-                            <input class="form-control" type="number" id="hospital-latitud" step="0.000001" min="-90" max="90" inputmode="decimal" required aria-describedby="ayuda-hospital-coords">
-                            <p id="ayuda-hospital-coords" class="help">Coordenada entre -90 y 90.</p>
-                        </div>
-                        <div class="field">
-                            <label for="hospital-longitud">Longitud</label>
-                            <input class="form-control" type="number" id="hospital-longitud" step="0.000001" min="-180" max="180" inputmode="decimal" required>
-                        </div>
-                        <fieldset class="field field-full">
-                            <legend>Especialidades asociadas</legend>
-                            <p class="help" id="ayuda-hospital-especialidades">Seleccione al menos una especialidad para el nuevo establecimiento.</p>
-                            <div id="hospital-especialidades" class="choice-grid" role="group" aria-describedby="ayuda-hospital-especialidades"></div>
-                        </fieldset>
-                        <div class="field field-full">
-                            <button type="submit" id="btn-crear-hospital" class="btn btn-primary">Registrar lugar</button>
-                        </div>
-                    </form>
-
-                    <hr class="divider">
-                    <h3>Lugares registrados</h3>
-                    <div id="hospitales-loading" class="loading-state">
-                        <span class="loading-spinner" aria-hidden="true"></span> Cargando lugares…
-                    </div>
-                    <p id="hospitales-empty" class="empty-state" hidden>No hay lugares registrados.</p>
-                    <div id="hospitales-tabla-contenedor" class="table-responsive" hidden>
-                        <table class="data-table">
-                            <caption id="caption-hospitales">Establecimientos de salud registrados</caption>
-                            <thead>
-                                <tr>
-                                    <th scope="col">Nombre</th>
-                                    <th scope="col">Red</th>
-                                    <th scope="col">Distrito</th>
-                                    <th scope="col">Dirección</th>
-                                    <th scope="col">Coordenadas</th>
-                                    <th scope="col">Especialidades</th>
-                                </tr>
-                            </thead>
-                            <tbody id="cuerpo-hospitales"></tbody>
-                        </table>
                     </div>
                 </div>
             </section>
 
-            <section id="medicamentos" class="section" aria-labelledby="titulo-medicamentos">
-                <div class="card">
-                    <div class="card-head">
-                        <div>
-                            <p class="eyebrow">Farmacia institucional</p>
-                            <h2 id="titulo-medicamentos">Catálogo de medicamentos</h2>
-                            <p class="card-subtitle">Registre medicamentos y consulte el catálogo activo usado en las recetas.</p>
+            <!-- Panel: Lugares (Split View) -->
+            <section id="panel-lugares" class="dashboard-section dashboard-tab-content" role="tabpanel" aria-labelledby="tab-lugares" tabindex="0" hidden>
+                <div class="split-view">
+                    <div class="split-form">
+                        <div class="card">
+                            <div class="card-head">
+                                <div>
+                                    <p class="eyebrow">Red asistencial</p>
+                                    <h2 id="titulo-lugares">Registrar lugar de atención</h2>
+                                    <p class="card-subtitle">Registre nuevos establecimientos de salud y asócieles sus especialidades.</p>
+                                </div>
+                            </div>
+
+                            <div id="lugares-alert" class="alert alert-info" role="status" hidden>
+                                <span class="alert-icon" aria-hidden="true">ℹ️</span>
+                                <p id="lugares-alert-texto"></p>
+                            </div>
+
+                            <form id="form-hospital" class="form-grid" novalidate>
+                                <div class="field">
+                                    <label for="hospital-nombre">Nombre del establecimiento</label>
+                                    <input class="form-control" type="text" id="hospital-nombre" maxlength="150" required>
+                                </div>
+                                <div class="field">
+                                    <label for="hospital-red">Red asistencial</label>
+                                    <input class="form-control" type="text" id="hospital-red" maxlength="120" required>
+                                </div>
+                                <div class="field">
+                                    <label for="hospital-distrito">Distrito</label>
+                                    <input class="form-control" type="text" id="hospital-distrito" maxlength="120" required>
+                                </div>
+                                <div class="field">
+                                    <label for="hospital-direccion">Dirección</label>
+                                    <input class="form-control" type="text" id="hospital-direccion" maxlength="200" required>
+                                </div>
+                                <div class="field">
+                                    <label for="hospital-latitud">Latitud</label>
+                                    <input class="form-control" type="number" id="hospital-latitud" step="0.000001" min="-90" max="90" inputmode="decimal" required aria-describedby="ayuda-hospital-coords">
+                                    <p id="ayuda-hospital-coords" class="help">Coordenada entre -90 y 90.</p>
+                                </div>
+                                <div class="field">
+                                    <label for="hospital-longitud">Longitud</label>
+                                    <input class="form-control" type="number" id="hospital-longitud" step="0.000001" min="-180" max="180" inputmode="decimal" required>
+                                </div>
+                                <fieldset class="field field-full">
+                                    <legend>Especialidades asociadas</legend>
+                                    <p class="help" id="ayuda-hospital-especialidades">Seleccione al menos una especialidad para el nuevo establecimiento.</p>
+                                    <div id="hospital-especialidades" class="choice-grid" role="group" aria-describedby="ayuda-hospital-especialidades"></div>
+                                </fieldset>
+                                <div class="field field-full">
+                                    <button type="submit" id="btn-crear-hospital" class="btn btn-primary">Registrar lugar</button>
+                                </div>
+                            </form>
                         </div>
-                        <button type="button" id="btn-recargar-medicamentos" class="btn btn-secondary btn-small">Actualizar catálogo</button>
                     </div>
 
-                    <div id="medicamentos-alert" class="alert alert-info" role="status" hidden>
-                        <span class="alert-icon" aria-hidden="true">ℹ️</span>
-                        <p id="medicamentos-alert-texto"></p>
-                    </div>
+                    <div class="split-table">
+                        <div class="card">
+                            <div class="card-head">
+                                <div>
+                                    <p class="eyebrow">Red asistencial</p>
+                                    <h2>Lugares registrados</h2>
+                                    <p class="card-subtitle">Establecimientos de salud del MINSA.</p>
+                                </div>
+                                <button type="button" id="btn-recargar-hospitales" class="btn btn-secondary btn-small">Actual</button>
+                            </div>
 
-                    <h3>Registrar medicamento</h3>
-                    <form id="form-medicamento" class="form-grid" novalidate>
-                        <div class="field">
-                            <label for="medicamento-codigo">Código</label>
-                            <input class="form-control" type="text" id="medicamento-codigo" maxlength="30" required aria-describedby="ayuda-medicamento-codigo">
-                            <p id="ayuda-medicamento-codigo" class="help">Código único, por ejemplo MED-009.</p>
+                            <div id="hospitales-loader" class="loading-state">
+                                <span class="loading-spinner" aria-hidden="true"></span> Cargando lugares…
+                            </div>
+                            <p id="hospitales-empty" class="empty-state" hidden>No hay lugares registrados.</p>
+                            <div id="hospitales-tabla-contenedor" class="table-responsive" hidden>
+                                <table class="data-table">
+                                    <caption id="caption-hospitales">Establecimientos de salud registrados</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">Nombre</th>
+                                            <th scope="col">Red</th>
+                                            <th scope="col">Distrito</th>
+                                            <th scope="col">Dirección</th>
+                                            <th scope="col">Coordenadas</th>
+                                            <th scope="col">Especialidades</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="cuerpo-hospitales"></tbody>
+                                </table>
+                            </div>
                         </div>
-                        <div class="field">
-                            <label for="medicamento-nombre">Nombre</label>
-                            <input class="form-control" type="text" id="medicamento-nombre" maxlength="150" required>
-                        </div>
-                        <div class="field">
-                            <label for="medicamento-presentacion">Presentación</label>
-                            <input class="form-control" type="text" id="medicamento-presentacion" maxlength="100" required placeholder="Ej. Tableta, jarabe, ampolla">
-                        </div>
-                        <div class="field">
-                            <label for="medicamento-concentracion">Concentración</label>
-                            <input class="form-control" type="text" id="medicamento-concentracion" maxlength="100" required placeholder="Ej. 500 mg, 250 mg/5 ml">
-                        </div>
-                        <div class="field">
-                            <label for="medicamento-stock">Stock</label>
-                            <input class="form-control" type="number" id="medicamento-stock" min="0" step="1" value="0" inputmode="numeric" required>
-                        </div>
-                        <div class="field field-full">
-                            <button type="submit" id="btn-crear-medicamento" class="btn btn-primary">Registrar medicamento</button>
-                        </div>
-                    </form>
-
-                    <hr class="divider">
-                    <h3>Medicamentos registrados</h3>
-                    <div id="medicamentos-loading" class="loading-state">
-                        <span class="loading-spinner" aria-hidden="true"></span> Cargando medicamentos…
-                    </div>
-                    <p id="medicamentos-empty" class="empty-state" hidden>No hay medicamentos registrados.</p>
-                    <div id="medicamentos-tabla-contenedor" class="table-responsive" hidden>
-                        <table class="data-table">
-                            <caption id="caption-medicamentos">Catálogo de medicamentos del MINSA</caption>
-                            <thead>
-                                <tr>
-                                    <th scope="col">Código</th>
-                                    <th scope="col">Nombre</th>
-                                    <th scope="col">Presentación</th>
-                                    <th scope="col">Concentración</th>
-                                    <th scope="col">Stock</th>
-                                    <th scope="col">Estado</th>
-                                </tr>
-                            </thead>
-                            <tbody id="cuerpo-medicamentos"></tbody>
-                        </table>
                     </div>
                 </div>
             </section>
 
-            <section id="horarios" class="section" aria-labelledby="titulo-horarios-admin">
-                <div class="card">
-                    <div class="card-head">
-                        <div>
-                            <p class="eyebrow">Gestión de disponibilidad</p>
-                            <h2 id="titulo-horarios-admin">Horarios disponibles (Administrador)</h2>
-                            <p class="card-subtitle">Asigne bloques de atención a los médicos registrados para que los pacientes puedan reservar.</p>
+            <!-- Panel: Medicamentos (Split View) -->
+            <section id="panel-medicamentos" class="dashboard-section dashboard-tab-content" role="tabpanel" aria-labelledby="tab-medicamentos" tabindex="0" hidden>
+                <div class="split-view">
+                    <div class="split-form">
+                        <div class="card">
+                            <div class="card-head">
+                                <div>
+                                    <p class="eyebrow">Farmacia institucional</p>
+                                    <h2 id="titulo-medicamentos">Registrar medicamento</h2>
+                                    <p class="card-subtitle">Registre medicamentos en el catálogo activo.</p>
+                                </div>
+                            </div>
+
+                            <div id="medicamentos-alert" class="alert alert-info" role="status" hidden>
+                                <span class="alert-icon" aria-hidden="true">ℹ️</span>
+                                <p id="medicamentos-alert-texto"></p>
+                            </div>
+
+                            <form id="form-medicamento" class="form-grid" novalidate>
+                                <div class="field">
+                                    <label for="medicamento-codigo">Código</label>
+                                    <input class="form-control" type="text" id="medicamento-codigo" maxlength="30" required aria-describedby="ayuda-medicamento-codigo">
+                                    <p id="ayuda-medicamento-codigo" class="help">Código único, por ejemplo MED-009.</p>
+                                </div>
+                                <div class="field">
+                                    <label for="medicamento-nombre">Nombre</label>
+                                    <input class="form-control" type="text" id="medicamento-nombre" maxlength="150" required>
+                                </div>
+                                <div class="field">
+                                    <label for="medicamento-presentacion">Presentación</label>
+                                    <input class="form-control" type="text" id="medicamento-presentacion" maxlength="100" required placeholder="Ej. Tableta, jarabe, ampolla">
+                                </div>
+                                <div class="field">
+                                    <label for="medicamento-concentracion">Concentración</label>
+                                    <input class="form-control" type="text" id="medicamento-concentracion" maxlength="100" required placeholder="Ej. 500 mg, 250 mg/5 ml">
+                                </div>
+                                <div class="field">
+                                    <label for="medicamento-stock">Stock</label>
+                                    <input class="form-control" type="number" id="medicamento-stock" min="0" step="1" value="0" inputmode="numeric" required>
+                                </div>
+                                <div class="field field-full">
+                                    <button type="submit" id="btn-crear-medicamento" class="btn btn-primary">Registrar medicamento</button>
+                                </div>
+                            </form>
                         </div>
-                        <button type="button" id="btn-recargar-horarios-admin" class="btn btn-secondary btn-small">Actualizar horarios</button>
                     </div>
 
-                    <div id="horarios-admin-alert" class="alert alert-info" role="status" hidden>
-                        <span class="alert-icon" aria-hidden="true">ℹ️</span>
-                        <p id="horarios-admin-alert-texto"></p>
+                    <div class="split-table">
+                        <div class="card">
+                            <div class="card-head">
+                                <div>
+                                    <p class="eyebrow">Farmacia institucional</p>
+                                    <h2>Catálogo de medicamentos</h2>
+                                    <p class="card-subtitle">Consulte el catálogo activo usado en las recetas.</p>
+                                </div>
+                                <button type="button" id="btn-recargar-medicamentos" class="btn btn-secondary btn-small">Actual</button>
+                            </div>
+
+                            <div id="medicamentos-loader" class="loading-state">
+                                <span class="loading-spinner" aria-hidden="true"></span> Cargando medicamentos…
+                            </div>
+                            <p id="medicamentos-empty" class="empty-state" hidden>No hay medicamentos registrados.</p>
+                            <div id="medicamentos-tabla-contenedor" class="table-responsive" hidden>
+                                <table class="data-table">
+                                    <caption id="caption-medicamentos">Catálogo de medicamentos del MINSA</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">Código</th>
+                                            <th scope="col">Nombre</th>
+                                            <th scope="col">Presentación</th>
+                                            <th scope="col">Concentración</th>
+                                            <th scope="col">Stock</th>
+                                            <th scope="col">Estado</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="cuerpo-medicamentos"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Panel: Horarios (Split View) -->
+            <section id="panel-horarios" class="dashboard-section dashboard-tab-content" role="tabpanel" aria-labelledby="tab-horarios" tabindex="0" hidden>
+                <div class="split-view">
+                    <div class="split-form">
+                        <div class="card">
+                            <div class="card-head">
+                                <div>
+                                    <p class="eyebrow">Gestión de disponibilidad</p>
+                                    <h2 id="titulo-horarios-admin">Registrar bloque horario</h2>
+                                    <p class="card-subtitle">Asigne bloques de atención a los médicos registrados.</p>
+                                </div>
+                            </div>
+
+                            <div id="horarios-admin-alert" class="alert alert-info" role="status" hidden>
+                                <span class="alert-icon" aria-hidden="true">ℹ️</span>
+                                <p id="horarios-admin-alert-texto"></p>
+                            </div>
+
+                            <form id="form-horario-admin" class="form-grid" novalidate>
+                                <div class="field">
+                                    <label for="horario-admin-medico">Médico</label>
+                                    <select class="form-select" id="horario-admin-medico" required aria-describedby="ayuda-horario-admin-medico">
+                                        <option value="">Seleccione un médico...</option>
+                                    </select>
+                                    <p id="ayuda-horario-admin-medico" class="help">Médicos registrados en el sistema.</p>
+                                </div>
+                                <div class="field">
+                                    <label for="horario-admin-fecha">Fecha</label>
+                                    <input class="form-control" type="date" id="horario-admin-fecha" required aria-describedby="ayuda-horario-admin-fecha">
+                                    <p id="ayuda-horario-admin-fecha" class="help">Fecha de la atención (hoy o futuro).</p>
+                                </div>
+                                <div class="field">
+                                    <label for="horario-admin-hora">Hora de inicio</label>
+                                    <input class="form-control" type="time" id="horario-admin-hora" required aria-describedby="ayuda-horario-admin-hora">
+                                    <p id="ayuda-horario-admin-hora" class="help">Hora en formato 24h, se guardará como bloque disponible.</p>
+                                </div>
+                                <div class="field field-full">
+                                    <button type="submit" id="btn-crear-horario-admin" class="btn btn-primary">Registrar horario</button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
 
-                    <h3>Registrar nuevo bloque horario</h3>
-                    <form id="form-horario-admin" class="form-grid" novalidate>
-                        <div class="field">
-                            <label for="horario-admin-medico">Médico</label>
-                            <select class="form-select" id="horario-admin-medico" required aria-describedby="ayuda-horario-admin-medico">
-                                <option value="">Seleccione un médico…</option>
-                            </select>
-                            <p id="ayuda-horario-admin-medico" class="help">Médicos registrados en el sistema.</p>
-                        </div>
-                        <div class="field">
-                            <label for="horario-admin-fecha">Fecha</label>
-                            <input class="form-control" type="date" id="horario-admin-fecha" required aria-describedby="ayuda-horario-admin-fecha">
-                            <p id="ayuda-horario-admin-fecha" class="help">Fecha de la atención (hoy o futuro).</p>
-                        </div>
-                        <div class="field">
-                            <label for="horario-admin-hora">Hora de inicio</label>
-                            <input class="form-control" type="time" id="horario-admin-hora" required aria-describedby="ayuda-horario-admin-hora">
-                            <p id="ayuda-horario-admin-hora" class="help">Hora en formato 24h, se guardará como bloque disponible.</p>
-                        </div>
-                        <div class="field field-full">
-                            <button type="submit" id="btn-crear-horario-admin" class="btn btn-primary">Registrar horario</button>
-                        </div>
-                    </form>
+                    <div class="split-table">
+                        <div class="card">
+                            <div class="card-head">
+                                <div>
+                                    <p class="eyebrow">Gestión de disponibilidad</p>
+                                    <h2>Bloques horarios registrados</h2>
+                                    <p class="card-subtitle">Horarios disponibles para reserva.</p>
+                                </div>
+                                <button type="button" id="btn-recargar-horarios-admin" class="btn btn-secondary btn-small">Actual</button>
+                            </div>
 
-                    <hr class="divider">
-                    <h3>Bloques horarios registrados</h3>
-                    <div id="horarios-admin-loading" class="loading-state">
-                        <span class="loading-spinner" aria-hidden="true"></span> Cargando horarios…
-                    </div>
-                    <p id="horarios-admin-empty" class="empty-state" hidden>No hay bloques horarios registrados.</p>
-                    <div id="horarios-admin-tabla-contenedor" class="table-responsive" hidden>
-                        <table class="data-table">
-                            <caption id="caption-horarios-admin">Bloques horarios disponibles para reserva</caption>
-                            <thead>
-                                <tr>
-                                    <th scope="col">Médico</th>
-                                    <th scope="col">Especialidad</th>
-                                    <th scope="col">Hospital</th>
-                                    <th scope="col">Fecha</th>
-                                    <th scope="col">Hora</th>
-                                    <th scope="col">Estado</th>
-                                </tr>
-                            </thead>
-                            <tbody id="cuerpo-horarios-admin"></tbody>
-                        </table>
+                            <div id="horarios-admin-loader" class="loading-state">
+                                <span class="loading-spinner" aria-hidden="true"></span> Cargando horarios…
+                            </div>
+                            <p id="horarios-admin-empty" class="empty-state" hidden>No hay bloques horarios registrados.</p>
+                            <div id="horarios-admin-tabla-contenedor" class="table-responsive" hidden>
+                                <table class="data-table">
+                                    <caption id="caption-horarios-admin">Bloques horarios disponibles para reserva</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">Médico</th>
+                                            <th scope="col">Especialidad</th>
+                                            <th scope="col">Hospital</th>
+                                            <th scope="col">Fecha</th>
+                                            <th scope="col">Hora</th>
+                                            <th scope="col">Estado</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="cuerpo-horarios-admin"></tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -568,8 +642,8 @@
     <dialog id="dlg-cancelar-dashboard" aria-labelledby="titulo-dlg-cancelar-dashboard">
         <div class="dialog-card">
             <div class="dialog-head">
-                <h2 id="titulo-dlg-cancelar-dashboard" tabindex="-1">Cancelar cita del sistema</h2>
-                <button type="button" class="dialog-close" data-cerrar-dialog="dlg-cancelar-dashboard" aria-label="Cerrar el diálogo de cancelación de cita">✕</button>
+                <h2 id="titulo-dlg-cancelar-dashboard" tabindex="-1">Cancelar cita</h2>
+                <button type="button" class="dialog-close" data-cerrar-dialog="dlg-cancelar-dashboard" aria-label="Cerrar ventana"></button>
             </div>
             <p id="cancelar-dashboard-resumen" class="help"></p>
             <div id="cancelar-dashboard-alert" class="alert alert-error" role="alert" hidden>
@@ -600,11 +674,7 @@
                 <h2>Accesos</h2>
                 <ul>
                     <li><a href="index.html">Inicio</a></li>
-                    <li><a href="#indicadores">Indicadores</a></li>
-                    <li><a href="#citas">Citas</a></li>
-                    <li><a href="#personal">Personal</a></li>
-                    <li><a href="#lugares">Lugares</a></li>
-                    <li><a href="#horarios">Horarios</a></li>
+                    <li><a href="login.html">Acceso</a></li>
                 </ul>
             </div>
             <div>
