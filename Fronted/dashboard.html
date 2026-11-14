@@ -84,9 +84,6 @@
                 <button type="button" class="dashboard-tab" id="tab-lugares" role="tab" aria-selected="false" aria-controls="panel-lugares" tabindex="-1">
                     <span aria-hidden="true">🏥</span> Lugares
                 </button>
-                <button type="button" class="dashboard-tab" id="tab-medicamentos" role="tab" aria-selected="false" aria-controls="panel-medicamentos" tabindex="-1">
-                    <span aria-hidden="true">💊</span> Medicamentos
-                </button>
                 <button type="button" class="dashboard-tab" id="tab-horarios" role="tab" aria-selected="false" aria-controls="panel-horarios" tabindex="-1">
                     <span aria-hidden="true">⏰</span> Horarios
                 </button>
@@ -103,7 +100,7 @@
                         </div>
                     </div>
 
-                    <form id="form-filtros-dashboard" class="filters" aria-label="Filtros de los indicadores">
+                    <form id="form-filtros-dashboard" class="filters" autocomplete="off" aria-label="Filtros de los indicadores">
                         <div class="field">
                             <label for="periodo-dashboard">Periodo</label>
                             <input class="form-control" type="month" id="periodo-dashboard" aria-describedby="ayuda-periodo">
@@ -296,7 +293,7 @@
                                 <p id="personal-alert-texto"></p>
                             </div>
 
-                            <form id="form-staff" class="form-grid" novalidate>
+                            <form id="form-staff" class="form-grid" autocomplete="off" novalidate>
                                 <div class="field">
                                     <label for="staff-dni">DNI</label>
                                     <input class="form-control" type="text" id="staff-dni" inputmode="numeric" maxlength="8" pattern="[0-9]{8}" required aria-describedby="ayuda-staff-dni">
@@ -317,7 +314,7 @@
                                 </div>
                                 <div class="field">
                                     <label for="staff-password">Contraseña inicial</label>
-                                    <input class="form-control" type="password" id="staff-password" minlength="4" autocomplete="new-password" required aria-describedby="ayuda-staff-password">
+                                    <input class="form-control" type="password" id="staff-password" minlength="4" required aria-describedby="ayuda-staff-password">
                                     <p id="ayuda-staff-password" class="help">Mínimo 4 caracteres.</p>
                                 </div>
                                 <div class="field">
@@ -331,13 +328,6 @@
                                     <label for="staff-cmp">CMP (opcional)</label>
                                     <input class="form-control" type="text" id="staff-cmp" maxlength="20" aria-describedby="ayuda-staff-cmp">
                                     <p id="ayuda-staff-cmp" class="help">Colegio Médico del Perú.</p>
-                                </div>
-                                <div class="field" id="campo-medico-staff">
-                                    <label for="staff-medico">Médico vinculado (opcional)</label>
-                                    <select class="form-select" id="staff-medico">
-                                        <option value="">Sin vínculo con un médico</option>
-                                    </select>
-                                    <p class="help">Vincule la cuenta a un médico para que pueda publicar horarios.</p>
                                 </div>
                                 <div class="field field-full">
                                     <button type="submit" id="btn-crear-staff" class="btn btn-primary">Crear cuenta institucional</button>
@@ -366,13 +356,11 @@
                                     <caption id="caption-usuarios">Cuentas de usuario del sistema MINSA</caption>
                                     <thead>
                                         <tr>
-                                            <th scope="col">Rol</th>
                                             <th scope="col">DNI</th>
                                             <th scope="col">Nombres</th>
                                             <th scope="col">Correo</th>
                                             <th scope="col">Teléfono</th>
                                             <th scope="col">CMP</th>
-                                            <th scope="col">Médico vinculado</th>
                                             <th scope="col">Estado</th>
                                         </tr>
                                     </thead>
@@ -402,7 +390,7 @@
                                 <p id="lugares-alert-texto"></p>
                             </div>
 
-                            <form id="form-hospital" class="form-grid" novalidate>
+                            <form id="form-hospital" class="form-grid" autocomplete="off" novalidate>
                                 <div class="field">
                                     <label for="hospital-nombre">Nombre del establecimiento</label>
                                     <input class="form-control" type="text" id="hospital-nombre" maxlength="150" required>
@@ -477,89 +465,6 @@
                 </div>
             </section>
 
-            <!-- Panel: Medicamentos (Split View) -->
-            <section id="panel-medicamentos" class="dashboard-section dashboard-tab-content" role="tabpanel" aria-labelledby="tab-medicamentos" tabindex="0" hidden>
-                <div class="split-view">
-                    <div class="split-form">
-                        <div class="card">
-                            <div class="card-head">
-                                <div>
-                                    <p class="eyebrow">Farmacia institucional</p>
-                                    <h2 id="titulo-medicamentos">Registrar medicamento</h2>
-                                    <p class="card-subtitle">Registre medicamentos en el catálogo activo.</p>
-                                </div>
-                            </div>
-
-                            <div id="medicamentos-alert" class="alert alert-info" role="status" hidden>
-                                <span class="alert-icon" aria-hidden="true">ℹ️</span>
-                                <p id="medicamentos-alert-texto"></p>
-                            </div>
-
-                            <form id="form-medicamento" class="form-grid" novalidate>
-                                <div class="field">
-                                    <label for="medicamento-codigo">Código</label>
-                                    <input class="form-control" type="text" id="medicamento-codigo" maxlength="30" required aria-describedby="ayuda-medicamento-codigo">
-                                    <p id="ayuda-medicamento-codigo" class="help">Código único, por ejemplo MED-009.</p>
-                                </div>
-                                <div class="field">
-                                    <label for="medicamento-nombre">Nombre</label>
-                                    <input class="form-control" type="text" id="medicamento-nombre" maxlength="150" required>
-                                </div>
-                                <div class="field">
-                                    <label for="medicamento-presentacion">Presentación</label>
-                                    <input class="form-control" type="text" id="medicamento-presentacion" maxlength="100" required placeholder="Ej. Tableta, jarabe, ampolla">
-                                </div>
-                                <div class="field">
-                                    <label for="medicamento-concentracion">Concentración</label>
-                                    <input class="form-control" type="text" id="medicamento-concentracion" maxlength="100" required placeholder="Ej. 500 mg, 250 mg/5 ml">
-                                </div>
-                                <div class="field">
-                                    <label for="medicamento-stock">Stock</label>
-                                    <input class="form-control" type="number" id="medicamento-stock" min="0" step="1" value="0" inputmode="numeric" required>
-                                </div>
-                                <div class="field field-full">
-                                    <button type="submit" id="btn-crear-medicamento" class="btn btn-primary">Registrar medicamento</button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-
-                    <div class="split-table">
-                        <div class="card">
-                            <div class="card-head">
-                                <div>
-                                    <p class="eyebrow">Farmacia institucional</p>
-                                    <h2>Catálogo de medicamentos</h2>
-                                    <p class="card-subtitle">Consulte el catálogo activo usado en las recetas.</p>
-                                </div>
-                                <button type="button" id="btn-recargar-medicamentos" class="btn btn-secondary btn-small">Actualizar</button>
-                            </div>
-
-                            <div id="medicamentos-loading" class="loading-state">
-                                <span class="loading-spinner" aria-hidden="true"></span> Cargando medicamentos…
-                            </div>
-                            <p id="medicamentos-empty" class="empty-state" hidden>No hay medicamentos registrados.</p>
-                            <div id="medicamentos-tabla-contenedor" class="table-responsive" hidden>
-                                <table class="data-table">
-                                    <caption id="caption-medicamentos">Catálogo de medicamentos del MINSA</caption>
-                                    <thead>
-                                        <tr>
-                                            <th scope="col">Código</th>
-                                            <th scope="col">Nombre</th>
-                                            <th scope="col">Presentación</th>
-                                            <th scope="col">Concentración</th>
-                                            <th scope="col">Stock</th>
-                                            <th scope="col">Estado</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="cuerpo-medicamentos"></tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
             <!-- Panel: Horarios (Split View) -->
             <section id="panel-horarios" class="dashboard-section dashboard-tab-content" role="tabpanel" aria-labelledby="tab-horarios" tabindex="0" hidden>
                 <div class="split-view">
@@ -578,7 +483,7 @@
                                 <p id="horarios-admin-alert-texto"></p>
                             </div>
 
-                            <form id="form-horario-admin" class="form-grid" novalidate>
+                            <form id="form-horario-admin" class="form-grid" autocomplete="off" novalidate>
                                 <div class="field">
                                     <label for="horario-admin-medico">Médico</label>
                                     <select class="form-select" id="horario-admin-medico" required aria-describedby="ayuda-horario-admin-medico">
@@ -652,7 +557,7 @@
                 <span class="alert-icon" aria-hidden="true">⚠️</span>
                 <p id="cancelar-dashboard-alert-texto"></p>
             </div>
-            <form id="form-cancelar-dashboard" novalidate>
+            <form id="form-cancelar-dashboard" autocomplete="off" novalidate>
                 <input type="hidden" id="cancelar-dashboard-cita-id">
                 <div class="field">
                     <label for="cancelar-dashboard-motivo">Motivo de la cancelación (opcional)</label>

@@ -1,5 +1,5 @@
 ﻿import { login, registerPaciente, saveSession, getHomeForUser } from './services/apiClient.js';
-import { ROL_LABELS, DEMO_USERS } from './config/api.config.js';
+import { ROL_LABELS } from './config/api.config.js';
 import { mostrarError, ocultarError, estadoBoton, marcarCampo, announce } from './shared/accessibility.js';
 
 const btnLogin = document.getElementById('btn-login');
@@ -106,7 +106,6 @@ async function sendingRegister(event) {
     const email = document.getElementById('reg-email');
     const telefono = document.getElementById('reg-telefono');
     const password = document.getElementById('reg-password');
-    const agree = document.getElementById('reg-agree');
 
     const dniLimpio = dni.value.trim();
     const nombresLimpio = nombres.value.trim();
@@ -118,10 +117,9 @@ async function sendingRegister(event) {
     if (!email.value || !email.validity.valid) { marcarCampo(email, true); invalido = true; } else { marcarCampo(email, false); }
     if (telefonoLimpio && !/^[\d\s\-\+]{6,15}$/.test(telefonoLimpio)) { marcarCampo(telefono, true); invalido = true; } else { marcarCampo(telefono, false); }
     if (password.value.length < 4) { marcarCampo(password, true); invalido = true; } else { marcarCampo(password, false); }
-    if (!agree.checked) { marcarCampo(agree, true); invalido = true; } else { marcarCampo(agree, false); }
 
     if (invalido) {
-        mostrarError('register', 'Por favor, revise los campos marcados y acepte los términos.');
+        mostrarError('register', 'Por favor, revise los campos marcados.');
         return;
     }
 
@@ -158,29 +156,3 @@ async function sendingRegister(event) {
 
 if (formLogin) { formLogin.addEventListener('submit', sendingLogin); }
 if (formRegister) { formRegister.addEventListener('submit', sendingRegister); }
-
-document.querySelectorAll('.demo-user').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-        const boton = e.currentTarget;
-        const indice = parseInt(boton.dataset.indice, 10);
-        const demo = DEMO_USERS[indice];
-        if (!demo) return;
-
-        const identInput = document.getElementById('identificador');
-        const passInput = document.getElementById('password');
-
-        identInput.value = demo.identificador;
-        passInput.value = demo.password;
-
-        const tabLogin = document.getElementById('tab-login');
-        if (tabLogin) tabLogin.click();
-
-        identInput.parentElement.classList.add('highlight');
-        passInput.parentElement.classList.add('highlight');
-        setTimeout(() => {
-            identInput.parentElement.classList.remove('highlight');
-            passInput.parentElement.classList.remove('highlight');
-            btnLogin.focus();
-        }, 600);
-    });
-});

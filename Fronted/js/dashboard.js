@@ -1,6 +1,6 @@
 /**
  * @file Dashboard administrativo del Sistema Inclusivo de Citas Médicas MINSA.
- * @description Consume los indicadores, citas, usuarios, hospitales, medicamentos y horarios
+ * @description Consume los indicadores, citas, usuarios, hospitales y horarios
  * desde la API REST. Incluye guardia de rol ADMIN, navegación por pestañas accesibles
  * (WCAG 2.1 AA/AAA) y sincronización con Chart.js.
  * @module dashboard
@@ -15,8 +15,6 @@ import {
     listarUsuarios,
     crearStaff,
     crearHospital,
-    getMedicamentos,
-    crearMedicamento,
     cancelarCita,
     crearHorario,
     logout
@@ -32,7 +30,7 @@ import { initAccessibility, announce, escapeHtml } from './shared/accessibility.
 })();
 
 // ---- Gestor de pestañas del dashboard ----
-const TAB_IDS = ['indicadores', 'citas', 'personal', 'lugares', 'medicamentos', 'horarios'];
+const TAB_IDS = ['indicadores', 'citas', 'personal', 'lugares', 'horarios'];
 
 /**
  * Inicializa la navegación accesible por pestañas (tablist / tabpanel).
@@ -130,11 +128,9 @@ const estado = {
     indicadores: null,
     citas: [],
     usuarios: [],
-    doctores: [],
     especialidades: [],
     especialidadesCatalogo: [],
     hospitales: [],
-    medicamentos: [],
     horariosAdmin: [],
     filtros: { periodo: '', especialidad: '' },
     charts: {},
@@ -291,20 +287,6 @@ function mostrarAvisoLugares(mensaje, tipo = 'info') {
     const contenedor = document.getElementById('lugares-alert');
     contenedor.className = `alert alert-${tipo === 'error' ? 'error' : tipo}`;
     document.getElementById('lugares-alert-texto').textContent = mensaje;
-    contenedor.hidden = false;
-    announce(mensaje, tipo === 'error' ? 'assertive' : 'polite');
-}
-
-/**
- * Muestra un aviso en la sección de medicamentos.
- * @param {string} mensaje Texto.
- * @param {'info'|'success'|'error'} [tipo='info'] Tipo visual.
- * @returns {void}
- */
-function mostrarAvisoMedicamentos(mensaje, tipo = 'info') {
-    const contenedor = document.getElementById('medicamentos-alert');
-    contenedor.className = `alert alert-${tipo === 'error' ? 'error' : tipo}`;
-    document.getElementById('medicamentos-alert-texto').textContent = mensaje;
     contenedor.hidden = false;
     announce(mensaje, tipo === 'error' ? 'assertive' : 'polite');
 }
@@ -804,25 +786,17 @@ function renderUsuarios() {
     contenedor.hidden = false;
 
     cuerpo.innerHTML = estado.usuarios.map((usuario) => {
-        const rol = ROLES_LABELS[usuario.rol] || usuario.rol;
         const activo = Number(usuario.activo) === 1;
         const estadoCuenta = activo
             ? '<span class="state state--atendida"><span class="state-icon" aria-hidden="true">✔</span>Activo</span>'
             : '<span class="state state--cancelada"><span class="state-icon" aria-hidden="true">✖</span>Inactivo</span>';
-        let medico = '—';
-        if (usuario.medico_id) {
-            const doctor = estado.doctores.find((item) => Number(item.id) === Number(usuario.medico_id));
-            medico = doctor ? doctor.nombre : `ID ${usuario.medico_id}`;
-        }
         return `
             <tr>
-                <th scope="row">${escapeHtml(rol)}</th>
                 <td>${escapeHtml(usuario.dni)}</td>
                 <td>${escapeHtml(usuario.nombres)}</td>
                 <td>${escapeHtml(usuario.email || '—')}</td>
                 <td>${escapeHtml(usuario.telefono || '—')}</td>
                 <td>${escapeHtml(usuario.cmp || '—')}</td>
-                <td>${escapeHtml(medico)}</td>
                 <td>${estadoCuenta}</td>
             </tr>
         `;
@@ -853,28 +827,6 @@ async function cargarUsuarios(anunciar = true) {
         vacio.hidden = false;
     } finally {
         if (cargando) cargando.hidden = true;
-    }
-}
-
-/**
- * Carga médicos para el alta de personal.
- * @returns {Promise<void>}
- */
-async function cargarCatalogos() {
-    try {
-        estado.doctores = await getDoctores();
-        const select = document.getElementById('staff-medico');
-        if (select) {
-            select.innerHTML = '<option value="">Sin vínculo con un médico</option>' +
-                estado.doctores.map((doctor) => `
-                    <option value="${doctor.id}">${escapeHtml(doctor.nombre)} (${escapeHtml(doctor.cmp)}) · ${escapeHtml(doctor.especialidad)}</option>
-                `).join('');
-        }
-    } catch (error) {
-        mostrarAvisoPersonal(
-            error.message || 'No se pudo cargar el catálogo de médicos para vincular cuentas.',
-            'error'
-        );
     }
 }
 
@@ -1058,73 +1010,6 @@ async function cargarHospitales(anunciar = true) {
         }
     } catch (error) {
         mostrarAvisoLugares(error.message || 'No se pudieron cargar los lugares de atención.', 'error');
-        vacio.hidden = false;
-    } finally {
-        if (cargando) cargando.hidden = true;
-    }
-}
-
-/**
- * Renderiza la tabla del catálogo de medicamentos.
- * @returns {void}
- */
-function renderMedicamentos() {
-    const contenedor = document.getElementById('medicamentos-tabla-contenedor');
-    const vacio = document.getElementById('medicamentos-empty');
-    const cuerpo = document.getElementById('cuerpo-medicamentos');
-
-    document.getElementById('caption-medicamentos').textContent =
-        `Catálogo de medicamentos del MINSA (${estado.medicamentos.length} registros)`;
-
-    if (estado.medicamentos.length === 0) {
-        cuerpo.innerHTML = '';
-        contenedor.hidden = true;
-        vacio.hidden = false;
-        return;
-    }
-
-    vacio.hidden = true;
-    contenedor.hidden = false;
-
-    cuerpo.innerHTML = estado.medicamentos.map((medicamento) => {
-        const activo = Number(medicamento.activo) === 1;
-        const estadoHtml = activo
-            ? '<span class="state state--atendida"><span class="state-icon" aria-hidden="true">✔</span>Activo</span>'
-            : '<span class="state state--cancelada"><span class="state-icon" aria-hidden="true">✖</span>Inactivo</span>';
-        return `
-            <tr>
-                <th scope="row">${escapeHtml(medicamento.codigo)}</th>
-                <td>${escapeHtml(medicamento.nombre)}</td>
-                <td>${escapeHtml(medicamento.presentacion)}</td>
-                <td>${escapeHtml(medicamento.concentracion)}</td>
-                <td>${escapeHtml(String(medicamento.stock))}</td>
-                <td>${estadoHtml}</td>
-            </tr>
-        `;
-    }).join('');
-}
-
-/**
- * Carga el catálogo de medicamentos desde la API.
- * @param {boolean} [anunciar=true] Si debe anunciar el resultado.
- * @returns {Promise<void>}
- */
-async function cargarMedicamentos(anunciar = true) {
-    const cargando = document.getElementById('medicamentos-loader') || document.getElementById('medicamentos-loading');
-    const contenedor = document.getElementById('medicamentos-tabla-contenedor');
-    const vacio = document.getElementById('medicamentos-empty');
-    if (cargando) cargando.hidden = false;
-    contenedor.hidden = true;
-    vacio.hidden = true;
-
-    try {
-        estado.medicamentos = await getMedicamentos();
-        renderMedicamentos();
-        if (anunciar) {
-            announce(`Medicamentos actualizados. ${estado.medicamentos.length} registros en el catálogo.`, 'polite');
-        }
-    } catch (error) {
-        mostrarAvisoMedicamentos(error.message || 'No se pudo cargar el catálogo de medicamentos.', 'error');
         vacio.hidden = false;
     } finally {
         if (cargando) cargando.hidden = true;
@@ -1337,9 +1222,7 @@ function actualizarCamposRol() {
     const rol = document.getElementById('staff-rol').value;
     const esEmpleado = rol === 'EMPLEADO';
     document.getElementById('campo-cmp-staff').hidden = !esEmpleado;
-    document.getElementById('campo-medico-staff').hidden = !esEmpleado;
     document.getElementById('staff-cmp').disabled = !esEmpleado;
-    document.getElementById('staff-medico').disabled = !esEmpleado;
 }
 
 /**
@@ -1347,7 +1230,7 @@ function actualizarCamposRol() {
  * @returns {void}
  */
 function limpiarInvalidosStaff() {
-    ['staff-dni', 'staff-nombres', 'staff-email', 'staff-telefono', 'staff-password', 'staff-cmp', 'staff-medico']
+    ['staff-dni', 'staff-nombres', 'staff-email', 'staff-telefono', 'staff-password', 'staff-cmp']
         .forEach((id) => marcarInvalido(document.getElementById(id), false));
 }
 
@@ -1386,7 +1269,6 @@ async function enviarStaff(event) {
     const password = document.getElementById('staff-password');
     const rol = document.getElementById('staff-rol');
     const cmp = document.getElementById('staff-cmp');
-    const medico = document.getElementById('staff-medico');
 
     const telefonoLimpio = telefono.value.trim().replace(/\s+/g, '');
     const validaciones = [
@@ -1420,8 +1302,7 @@ async function enviarStaff(event) {
             telefono: telefonoLimpio || undefined,
             password: password.value,
             rol: rol.value,
-            cmp: esEmpleado && cmp.value.trim() ? cmp.value.trim() : null,
-            medicoId: esEmpleado && medico.value ? Number(medico.value) : undefined
+            cmp: esEmpleado && cmp.value.trim() ? cmp.value.trim() : null
         });
         const creado = resultado.usuario || {};
         mostrarAvisoPersonal(
@@ -1543,64 +1424,6 @@ async function enviarHospital(event) {
 }
 
 /**
- * Registra un nuevo medicamento en el catálogo.
- * @param {SubmitEvent} event Evento de envío.
- * @returns {Promise<void>}
- */
-async function enviarMedicamento(event) {
-    event.preventDefault();
-    const codigo = document.getElementById('medicamento-codigo');
-    const nombre = document.getElementById('medicamento-nombre');
-    const presentacion = document.getElementById('medicamento-presentacion');
-    const concentracion = document.getElementById('medicamento-concentracion');
-    const stock = document.getElementById('medicamento-stock');
-
-    const stockNum = Number(stock.value);
-    const validaciones = [
-        { campo: codigo, valido: codigo.value.trim().length >= 3, mensaje: 'Ingrese un código de medicamento válido (mínimo 3 caracteres).' },
-        { campo: nombre, valido: nombre.value.trim().length >= 3, mensaje: 'Ingrese el nombre del medicamento.' },
-        { campo: presentacion, valido: presentacion.value.trim().length >= 2, mensaje: 'Ingrese la presentación del medicamento.' },
-        { campo: concentracion, valido: concentracion.value.trim().length >= 1, mensaje: 'Ingrese la concentración del medicamento.' },
-        { campo: stock, valido: Number.isInteger(stockNum) && stockNum >= 0, mensaje: 'El stock debe ser un número entero mayor o igual a cero.' }
-    ];
-
-    validaciones.forEach((item) => marcarInvalido(item.campo, !item.valido));
-    const primerError = validaciones.find((item) => !item.valido);
-    if (primerError) {
-        mostrarAvisoMedicamentos(primerError.mensaje, 'error');
-        primerError.campo.focus();
-        return;
-    }
-
-    const boton = document.getElementById('btn-crear-medicamento');
-    boton.disabled = true;
-    boton.setAttribute('aria-busy', 'true');
-    boton.textContent = 'Registrando…';
-
-    try {
-        const resultado = await crearMedicamento({
-            codigo: codigo.value.trim().toUpperCase(),
-            nombre: nombre.value.trim(),
-            presentacion: presentacion.value.trim(),
-            concentracion: concentracion.value.trim(),
-            stock: stockNum
-        });
-        const creado = resultado.medicamento || {};
-        mostrarAvisoMedicamentos(`Medicamento registrado: ${creado.nombre || nombre.value.trim()}.`, 'success');
-        document.getElementById('form-medicamento').reset();
-        document.getElementById('medicamento-stock').value = '0';
-        validaciones.forEach((item) => marcarInvalido(item.campo, false));
-        await cargarMedicamentos(false);
-    } catch (error) {
-        mostrarAvisoMedicamentos(error.message || 'No se pudo registrar el medicamento.', 'error');
-    } finally {
-        boton.disabled = false;
-        boton.removeAttribute('aria-busy');
-        boton.textContent = 'Registrar medicamento';
-    }
-}
-
-/**
  * Conecta los eventos de la vista.
  * @returns {void}
  */
@@ -1626,7 +1449,6 @@ function conectarEventos() {
     document.getElementById('btn-recargar-citas-admin').addEventListener('click', () => cargarCitas(true));
     document.getElementById('btn-recargar-usuarios').addEventListener('click', () => cargarUsuarios(true));
     document.getElementById('btn-recargar-hospitales').addEventListener('click', () => cargarHospitales(true));
-    document.getElementById('btn-recargar-medicamentos').addEventListener('click', () => cargarMedicamentos(true));
     document.getElementById('btn-recargar-horarios-admin').addEventListener('click', () => cargarHorariosAdmin(true));
 
     document.getElementById('cuerpo-citas-admin').addEventListener('click', (event) => {
@@ -1639,7 +1461,6 @@ function conectarEventos() {
     document.getElementById('staff-rol').addEventListener('change', actualizarCamposRol);
     document.getElementById('form-staff').addEventListener('submit', enviarStaff);
     document.getElementById('form-hospital').addEventListener('submit', enviarHospital);
-    document.getElementById('form-medicamento').addEventListener('submit', enviarMedicamento);
     document.getElementById('form-horario-admin').addEventListener('submit', enviarHorarioAdmin);
     document.getElementById('form-cancelar-dashboard').addEventListener('submit', enviarCancelacion);
 
@@ -1695,14 +1516,12 @@ async function iniciar() {
     conectarEventos();
     observarContraste();
 
-    await cargarCatalogos();
     await cargarMedicosParaHorarios();
     await Promise.all([
         cargarIndicadores(false),
         cargarCitas(false),
         cargarUsuarios(false),
         cargarHospitales(false),
-        cargarMedicamentos(false),
         cargarHorariosAdmin(false)
     ]);
     announce(`Dashboard administrativo cargado. Bienvenido, ${estado.usuario.nombres}.`, 'polite');

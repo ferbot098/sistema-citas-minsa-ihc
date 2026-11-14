@@ -552,7 +552,7 @@ function renderCitas() {
             ? `<button type="button" class="btn btn-secondary btn-small" data-accion="reprogramar" data-id="${cita.id}">Reprogramar</button>
                <button type="button" class="btn btn-danger btn-small" data-accion="cancelar" data-id="${cita.id}">Cancelar</button>`
             : cita.estado === 'ATENDIDA'
-                ? `<button type="button" class="btn btn-primary btn-small" data-accion="diagnostico" data-id="${cita.id}">Ver Diagnóstico y Receta</button>`
+                ? `<button type="button" class="btn btn-primary btn-small" data-accion="diagnostico" data-id="${cita.id}">Ver diagnóstico</button>`
                 : '<span class="help">Sin acciones disponibles</span>';
 
         return `
@@ -601,7 +601,7 @@ async function cargarCitas(anunciar = true) {
 }
 
 /**
- * Abre el diálogo con el diagnóstico y la receta de una cita atendida.
+ * Abre el diálogo con el diagnóstico de una cita atendida.
  * @param {Record<string, any>} cita Cita atendida.
  * @returns {Promise<void>}
  */
@@ -614,7 +614,7 @@ async function abrirDiagnostico(cita) {
     const alerta = document.getElementById('diagnostico-alert');
     alerta.hidden = true;
     const contenedor = document.getElementById('diagnostico-contenido');
-    contenedor.innerHTML = '<p class="loading-state"><span class="loading-spinner" aria-hidden="true"></span> Cargando diagnóstico y receta…</p>';
+    contenedor.innerHTML = '<p class="loading-state"><span class="loading-spinner" aria-hidden="true"></span> Cargando diagnóstico…</p>';
 
     const dialogo = document.getElementById('dlg-diagnostico');
     if (!dialogo.open) {
@@ -624,36 +624,6 @@ async function abrirDiagnostico(cita) {
 
     try {
         const diagnostico = await getDiagnosticoPorCita(cita.id);
-        const medicamentos = Array.isArray(diagnostico.medicamentos) ? diagnostico.medicamentos : [];
-        const recetaHtml = medicamentos.length === 0
-            ? '<p class="empty-state">El diagnóstico no incluye medicamentos recetados.</p>'
-            : `
-                <div class="data-table" role="region" aria-label="Medicamentos recetados" tabindex="0">
-                    <table>
-                        <caption>Medicamentos recetados (${medicamentos.length})</caption>
-                        <thead>
-                            <tr>
-                                <th scope="col">Medicamento</th>
-                                <th scope="col">Presentación</th>
-                                <th scope="col">Dosis</th>
-                                <th scope="col">Frecuencia</th>
-                                <th scope="col">Días</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${medicamentos.map((medicamento) => `
-                                <tr>
-                                    <th scope="row">${escapeHtml(medicamento.nombre)}</th>
-                                    <td>${escapeHtml(`${medicamento.concentracion} · ${medicamento.presentacion}`)}</td>
-                                    <td>${escapeHtml(medicamento.dosis)}</td>
-                                    <td>${escapeHtml(medicamento.frecuencia)}</td>
-                                    <td>${escapeHtml(String(medicamento.dias))}</td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                </div>
-            `;
 
         contenedor.innerHTML = `
             <dl class="summary-list">
@@ -661,13 +631,12 @@ async function abrirDiagnostico(cita) {
                 <div><dt>Diagnóstico</dt><dd>${escapeHtml(diagnostico.descripcion)}</dd></div>
                 <div><dt>Indicaciones generales</dt><dd>${escapeHtml(diagnostico.indicaciones_generales || 'Sin indicaciones adicionales.')}</dd></div>
             </dl>
-            ${recetaHtml}
         `;
-        announce('Diagnóstico y receta cargados.', 'polite');
+        announce('Diagnóstico cargado.', 'polite');
     } catch (error) {
         contenedor.innerHTML = '';
         document.getElementById('diagnostico-alert-texto').textContent =
-            error.message || 'No se pudo cargar el diagnóstico y la receta.';
+            error.message || 'No se pudo cargar el diagnóstico.';
         alerta.hidden = false;
         announce(document.getElementById('diagnostico-alert-texto').textContent, 'assertive');
     }
