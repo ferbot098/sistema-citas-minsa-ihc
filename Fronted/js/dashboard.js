@@ -7,7 +7,7 @@
  */
 
 import {
-    requireRole,
+    getSession,
     getIndicadores,
     getCitas,
     getHospitales,
@@ -22,11 +22,16 @@ import {
 import { initAccessibility, announce, escapeHtml } from './shared/accessibility.js';
 
 // ---- Guardia de ruta estricta ----
+let usuarioSesion = null;
 (function validarAccesoAdmin() {
-    const usuario = requireRole(['ADMIN']);
-    if (!usuario) {
+    const sesion = getSession();
+    const usuario = sesion ? sesion.usuario : null;
+    if (!sesion || !sesion.token || !usuario || usuario.rol !== 'ADMIN') {
+        localStorage.removeItem('minsa_session');
+        window.location.replace('login.html');
         throw new Error('Acceso denegado: se requiere rol ADMIN.');
     }
+    usuarioSesion = usuario;
 })();
 
 // ---- Gestor de pestañas del dashboard ----
@@ -1502,7 +1507,7 @@ function observarContraste() {
  * @returns {Promise<void>}
  */
 async function iniciar() {
-    const usuario = requireRole(['ADMIN']);
+    const usuario = usuarioSesion;
     if (!usuario) {
         return;
     }

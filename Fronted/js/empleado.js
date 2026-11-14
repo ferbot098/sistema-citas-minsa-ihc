@@ -7,7 +7,7 @@
  */
 
 import {
-    requireRole,
+    getSession,
     getCitas,
     getDoctores,
     getMedicamentos,
@@ -802,11 +802,26 @@ async function cargarMedicamentos() {
 }
 
 /**
+ * Guardia de ruta estricta para el portal del personal asistencial.
+ * @returns {Record<string, any> | null} Usuario EMPLEADO o `null` si redirigió.
+ */
+function obtenerUsuarioEmpleado() {
+    const sesion = getSession();
+    const usuario = sesion ? sesion.usuario : null;
+    if (!sesion || !sesion.token || !usuario || usuario.rol !== 'EMPLEADO') {
+        localStorage.removeItem('minsa_session');
+        window.location.replace('login.html');
+        return null;
+    }
+    return usuario;
+}
+
+/**
  * Inicializa el portal del personal asistencial.
  * @returns {Promise<void>}
  */
 async function iniciar() {
-    const usuario = requireRole(['EMPLEADO']);
+    const usuario = obtenerUsuarioEmpleado();
     if (!usuario) {
         return;
     }

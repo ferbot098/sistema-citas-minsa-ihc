@@ -1,4 +1,4 @@
-﻿import { login, registerPaciente, saveSession, getHomeForUser } from './services/apiClient.js';
+﻿import { login, registerPaciente, saveSession } from './services/apiClient.js';
 import { ROL_LABELS } from './config/api.config.js';
 import { mostrarError, ocultarError, estadoBoton, marcarCampo, announce } from './shared/accessibility.js';
 
@@ -21,19 +21,27 @@ function limpiarSesionPreservandoAccesibilidad() {
     }
 }
 
-const checkSession = () => {
+const DESTINOS_POR_ROL = Object.freeze({
+    PACIENTE: 'Minsa.html',
+    ADMIN: 'dashboard.html',
+    EMPLEADO: 'empleado.html'
+});
+
+const checkExistingSession = () => {
     if (window.location.hash === '#registro') return;
     try {
         const session = JSON.parse(localStorage.getItem('minsa_session'));
         const usuario = session && (session.usuario || session.USUARIO);
         if (session && session.token && usuario) {
-            const dest = usuario.rol === 'ADMIN' ? 'dashboard.html' : 'Minsa.html';
-            window.location.replace(dest);
+            const dest = DESTINOS_POR_ROL[usuario.rol];
+            if (dest) {
+                window.location.replace(dest);
+            }
         }
     } catch (e) {}
 };
 
-window.addEventListener('load', checkSession);
+window.addEventListener('load', checkExistingSession);
 
 async function sendingLogin(event) {
     event.preventDefault();
@@ -78,11 +86,7 @@ async function sendingLogin(event) {
 
         saveSession(resultado.token, usuario);
 
-        const destino = usuario.rol === 'ADMIN'
-            ? 'dashboard.html'
-            : usuario.rol === 'PACIENTE'
-                ? 'Minsa.html'
-                : (typeof getHomeForUser === 'function' ? getHomeForUser(usuario) : 'index.html');
+        const destino = DESTINOS_POR_ROL[usuario.rol] || 'index.html';
 
         estadoBoton(btnLogin, true, 'Ingresar al sistema');
         btnLogin.textContent = 'Acceso correcto. Redirigiendo…';

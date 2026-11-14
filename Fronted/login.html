@@ -40,9 +40,6 @@
                 <button type="button" id="btn-text" class="tool-btn" aria-pressed="false">
                     <span aria-hidden="true">A+</span> Aumentar texto
                 </button>
-                <button type="button" class="btn-read-section tool-btn" aria-label="Escuchar sección de acceso" data-target="contenido">
-                    <span aria-hidden="true">🔊</span> Escuchar sección
-                </button>
             </div>
         </div>
         <nav class="main-nav" aria-label="Navegación principal">
@@ -75,6 +72,11 @@
                 <p class="lead">
                     Elija entre ingresar con su cuenta existente o crear una cuenta nueva como paciente.
                 </p>
+                <div style="text-align: center; margin-top: 1.25rem;">
+                    <button type="button" class="btn btn-primary btn-read-section" aria-label="Escuchar sección de acceso" data-target="contenido" style="padding: 0.85rem 1.75rem; font-size: 1.08rem; display: inline-flex; align-items: center; gap: 0.5rem;">
+                        <span aria-hidden="true">🔊</span> Escuchar sección
+                    </button>
+                </div>
             </section>
 
             <!-- Selector visual de 2 tarjetas diferenciadas -->
@@ -113,8 +115,7 @@
                     <form id="form-login" autocomplete="off" novalidate>
                         <div class="field">
                             <label for="identificador">DNI, CMP o correo electrónico</label>
-                            <input class="form-control" type="text" id="identificador" required aria-describedby="ayuda-identificador">
-                            <p id="ayuda-identificador" class="help">Ejemplos: 01812548 o admin@minsa.gob.pe.</p>
+                            <input class="form-control" type="text" id="identificador" required>
                         </div>
                         <div class="field">
                             <label for="password">Contraseña</label>

@@ -7,8 +7,7 @@
  */
 
 import {
-    requireRole,
-    getUsuario,
+    getSession,
     getHospitales,
     getDoctores,
     getCitas,
@@ -1071,11 +1070,26 @@ function conectarEventos() {
 }
 
 /**
+ * Guardia de ruta estricta para el portal del paciente.
+ * @returns {Record<string, any> | null} Usuario PACIENTE o `null` si redirigió.
+ */
+function obtenerUsuarioPaciente() {
+    const sesion = getSession();
+    const usuario = sesion ? sesion.usuario : null;
+    if (!sesion || !sesion.token || !usuario || usuario.rol !== 'PACIENTE') {
+        localStorage.removeItem('minsa_session');
+        window.location.replace('login.html');
+        return null;
+    }
+    return usuario;
+}
+
+/**
  * Inicializa el portal del paciente.
  * @returns {Promise<void>}
  */
 async function iniciar() {
-    const usuario = requireRole(['PACIENTE']);
+    const usuario = obtenerUsuarioPaciente();
     if (!usuario) {
         return;
     }
