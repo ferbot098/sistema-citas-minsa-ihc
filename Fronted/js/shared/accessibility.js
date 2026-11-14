@@ -113,6 +113,73 @@ export function closeDialog(id) {
 // Variables para la Web Speech API
 let speechUtterance = null;
 let isSpeaking = false;
+let beforeUnloadRegistrado = false;
+
+const A11Y_STORAGE_KEY = 'minsa_a11y_preferences';
+
+/**
+ * Lee las preferencias de accesibilidad almacenadas.
+ * @returns {Record<string, any>} Preferencias seguras.
+ */
+function leerPreferenciasAccesibilidad() {
+    try {
+        const prefs = JSON.parse(localStorage.getItem(A11Y_STORAGE_KEY) || '{}');
+        return prefs && typeof prefs === 'object' ? prefs : {};
+    } catch {
+        return {};
+    }
+}
+
+/**
+ * Guarda las preferencias de accesibilidad.
+ * @param {Record<string, any>} prefs Preferencias a persistir.
+ * @returns {void}
+ */
+function guardarPreferenciasAccesibilidad(prefs) {
+    try {
+        localStorage.setItem(A11Y_STORAGE_KEY, JSON.stringify(prefs));
+    } catch {
+        /* El almacenamiento puede estar deshabilitado por el navegador. */
+    }
+}
+
+/**
+ * Reemplaza un botón por un clon limpio para eliminar listeners duplicados.
+ * @param {HTMLElement|null} boton Botón original.
+ * @returns {HTMLElement|null} Clon insertado en el DOM o `null`.
+ */
+function reemplazarBotonSinListeners(boton) {
+    if (!boton || !boton.parentNode) return null;
+    const clon = boton.cloneNode(true);
+    boton.parentNode.replaceChild(clon, boton);
+    return clon;
+}
+
+/**
+ * Extrae texto legible de un contenedor eliminando nodos ruidosos.
+ * @param {HTMLElement|null} contenedor Contenedor de origen.
+ * @returns {string} Texto limpio para síntesis de voz.
+ */
+function extraerTextoLegible(contenedor) {
+    if (!contenedor) return '';
+    const clon = contenedor.cloneNode(true);
+    clon.querySelectorAll('button, .sr-only, script, style, noscript, [aria-hidden="true"], [hidden]')
+        .forEach((nodo) => nodo.remove());
+    return (clon.textContent || '').replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * Detiene cualquier lectura en curso y restablece los botones de voz.
+ * @returns {void}
+ */
+function detenerLectura() {
+    speechUtterance = null;
+    if (window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+    }
+    isSpeaking = false;
+    resetAllReadButtons();
+}
 
 /**
  * Lee un texto en voz alta. Si ya está hablando, lo detiene.
@@ -120,8 +187,14 @@ let isSpeaking = false;
  * @param {HTMLElement|null} triggerButton Botón que disparó la acción.
  */
 export function speakText(text, triggerButton = null) {
+    if (!('speechSynthesis' in window)) {
+        announce('La lectura en voz alta no está disponible en este navegador.');
+        return;
+    }
+
     // Si ya está hablando, detener la síntesis y resetear estados
     if (window.speechSynthesis.speaking) {
+        speechUtterance = null;
         window.speechSynthesis.cancel();
         isSpeaking = false;
         resetAllReadButtons();
@@ -131,18 +204,20 @@ export function speakText(text, triggerButton = null) {
 
     if (!text) return;
 
-    speechUtterance = new SpeechSynthesisUtterance(text);
-    speechUtterance.lang = 'es-PE';
-    speechUtterance.rate = 0.95; // Un poco más lento para mejor comprensión
+    const utterance = new SpeechSynthesisUtterance(text);
+    speechUtterance = utterance;
+    utterance.lang = 'es-PE';
+    utterance.rate = 0.95; // Un poco más lento para mejor comprensión
     
     // Buscar voz en español
     const voices = window.speechSynthesis.getVoices();
     const spanishVoice = voices.find(v => v.lang.startsWith('es-') && (v.name.includes('Peru') || v.name.includes('Latin'))) || voices.find(v => v.lang.startsWith('es'));
     if (spanishVoice) {
-        speechUtterance.voice = spanishVoice;
+        utterance.voice = spanishVoice;
     }
 
-    speechUtterance.onstart = () => {
+    utterance.onstart = () => {
+        if (speechUtterance !== utterance) return;
         isSpeaking = true;
         if (triggerButton) {
             triggerButton.innerHTML = '<span aria-hidden="true">⏹</span> Detener lectura';
@@ -150,17 +225,21 @@ export function speakText(text, triggerButton = null) {
         }
     };
 
-    speechUtterance.onend = () => {
+    utterance.onend = () => {
+        if (speechUtterance !== utterance) return;
+        speechUtterance = null;
         isSpeaking = false;
         resetAllReadButtons();
     };
 
-    speechUtterance.onerror = () => {
+    utterance.onerror = () => {
+        if (speechUtterance !== utterance) return;
+        speechUtterance = null;
         isSpeaking = false;
         resetAllReadButtons();
     };
 
-    window.speechSynthesis.speak(speechUtterance);
+    window.speechSynthesis.speak(utterance);
 }
 
 /**
@@ -171,97 +250,124 @@ function resetAllReadButtons() {
         btn.innerHTML = '<span aria-hidden="true">🔊</span> Escuchar sección';
         btn.setAttribute('aria-pressed', 'false');
     });
+
+    const btnSpeak = document.getElementById('btn-speak');
+    if (btnSpeak) {
+        btnSpeak.innerHTML = '<span aria-hidden="true">🔊</span> Escuchar página';
+        btnSpeak.setAttribute('aria-pressed', 'false');
+    }
 }
 
 /**
  * Inicializa herramientas de accesibilidad (contraste, texto y lector de pantalla por sección).
  */
 export function initAccessibility() {
-    const prefs = JSON.parse(localStorage.getItem('minsa_a11y_preferences') || '{}');
+    const prefs = leerPreferenciasAccesibilidad();
     const docEl = document.documentElement;
 
-    const btnContrast = document.getElementById('btn-contrast');
-    const btnText = document.getElementById('btn-text');
-    
     // Cargar voces al inicio (es asíncrono en algunos navegadores)
     if (window.speechSynthesis) {
         window.speechSynthesis.getVoices();
         window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
     }
 
-    // Configurar estado inicial
-    if (prefs.contraste) {
-        docEl.classList.add('high-contrast');
-        if (btnContrast) btnContrast.setAttribute('aria-pressed', 'true');
-    }
-    if (prefs.textoGrande) {
-        docEl.classList.add('large-text', 'texto-grande');
-        if (btnText) btnText.setAttribute('aria-pressed', 'true');
-    }
+    // Clonar botones para eliminar listeners previos y evitar duplicados
+    const btnContrast = reemplazarBotonSinListeners(document.getElementById('btn-contrast'));
+    const btnText = reemplazarBotonSinListeners(document.getElementById('btn-text'));
+    const btnSpeak = reemplazarBotonSinListeners(document.getElementById('btn-speak'));
+
+    // Aplicar preferencias guardadas
+    docEl.classList.toggle('high-contrast', Boolean(prefs.contraste));
+    docEl.classList.toggle('large-text', Boolean(prefs.textoGrande));
+    docEl.classList.toggle('texto-grande', Boolean(prefs.textoGrande));
 
     // Alto contraste
     if (btnContrast) {
+        btnContrast.setAttribute('aria-pressed', String(Boolean(prefs.contraste)));
         btnContrast.addEventListener('click', () => {
-            const isPressed = btnContrast.getAttribute('aria-pressed') === 'true';
-            btnContrast.setAttribute('aria-pressed', !isPressed);
-            docEl.classList.toggle('high-contrast', !isPressed);
-            
-            const currentPrefs = JSON.parse(localStorage.getItem('minsa_a11y_preferences') || '{}');
-            currentPrefs.contraste = !isPressed;
-            localStorage.setItem('minsa_a11y_preferences', JSON.stringify(currentPrefs));
-            
-            announce(`Modo de alto contraste ${!isPressed ? 'activado' : 'desactivado'}.`);
+            const activado = !docEl.classList.contains('high-contrast');
+            docEl.classList.toggle('high-contrast', activado);
+            btnContrast.setAttribute('aria-pressed', String(activado));
+
+            const actuales = leerPreferenciasAccesibilidad();
+            actuales.contraste = activado;
+            guardarPreferenciasAccesibilidad(actuales);
+
+            announce(`Modo de alto contraste ${activado ? 'activado' : 'desactivado'}.`);
         });
     }
 
-    // Aumentar texto
+    // Texto grande
     if (btnText) {
+        btnText.setAttribute('aria-pressed', String(Boolean(prefs.textoGrande)));
         btnText.addEventListener('click', () => {
-            const isPressed = btnText.getAttribute('aria-pressed') === 'true';
-            btnText.setAttribute('aria-pressed', !isPressed);
-            docEl.classList.toggle('large-text', !isPressed);
-            docEl.classList.toggle('texto-grande', !isPressed);
-            
-            const currentPrefs = JSON.parse(localStorage.getItem('minsa_a11y_preferences') || '{}');
-            currentPrefs.textoGrande = !isPressed;
-            localStorage.setItem('minsa_a11y_preferences', JSON.stringify(currentPrefs));
-            
-            announce(`Texto grande ${!isPressed ? 'activado' : 'desactivado'}.`);
+            const activado = !docEl.classList.contains('large-text');
+            docEl.classList.toggle('large-text', activado);
+            docEl.classList.toggle('texto-grande', activado);
+            btnText.setAttribute('aria-pressed', String(activado));
+
+            const actuales = leerPreferenciasAccesibilidad();
+            actuales.textoGrande = activado;
+            guardarPreferenciasAccesibilidad(actuales);
+
+            announce(`Texto grande ${activado ? 'activado' : 'desactivado'}.`);
         });
     }
 
-    // Escuchar secciones específicas
-    document.querySelectorAll('.btn-read-section').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const isThisButtonSpeaking = btn.getAttribute('aria-pressed') === 'true';
-            
-            // Si este mismo botón estaba leyendo, se detiene la lectura
-            if (isThisButtonSpeaking) {
-                speakText(null); 
+    // Leer la página completa desde <main id="contenido">
+    if (btnSpeak) {
+        btnSpeak.setAttribute('aria-pressed', 'false');
+        btnSpeak.addEventListener('click', () => {
+            if (btnSpeak.getAttribute('aria-pressed') === 'true') {
+                detenerLectura();
                 return;
             }
 
-            const targetId = btn.getAttribute('data-target');
-            const targetSection = document.getElementById(targetId);
-            
-            if (targetSection) {
-                // Clonamos la sección para limpiarla antes de leerla
-                const clone = targetSection.cloneNode(true);
-                // Removemos los botones de lectura del clon para que no lea "Escuchar sección"
-                clone.querySelectorAll('.btn-read-section').forEach(b => b.remove());
-                
-                // Extraer el texto limpio
-                const cleanText = clone.innerText || clone.textContent;
-                speakText(cleanText, btn);
-                announce('Iniciando lectura de la sección.');
+            const texto = extraerTextoLegible(document.getElementById('contenido'));
+            if (!texto) {
+                announce('No hay contenido disponible para leer.');
+                return;
             }
+
+            speakText(texto, btnSpeak);
+        });
+    }
+
+    // Leer secciones específicas
+    document.querySelectorAll('.btn-read-section').forEach((boton) => {
+        const nuevoBoton = reemplazarBotonSinListeners(boton);
+        if (!nuevoBoton) return;
+
+        nuevoBoton.setAttribute('aria-pressed', 'false');
+        nuevoBoton.addEventListener('click', () => {
+            if (nuevoBoton.getAttribute('aria-pressed') === 'true') {
+                detenerLectura();
+                return;
+            }
+
+            const targetId = nuevoBoton.getAttribute('data-target');
+            const seccion = targetId ? document.getElementById(targetId) : null;
+            const texto = extraerTextoLegible(seccion);
+
+            if (!texto) {
+                announce('No hay contenido disponible para leer en esta sección.');
+                return;
+            }
+
+            speakText(texto, nuevoBoton);
         });
     });
 
+    // Normalizar etiquetas de lectura tras una posible reinicialización
+    resetAllReadButtons();
+
     // Detener lectura si se cambia de página o se cierra
-    window.addEventListener('beforeunload', () => {
-        if (window.speechSynthesis) window.speechSynthesis.cancel();
-    });
+    if (!beforeUnloadRegistrado) {
+        window.addEventListener('beforeunload', () => {
+            if (window.speechSynthesis) window.speechSynthesis.cancel();
+        });
+        beforeUnloadRegistrado = true;
+    }
 }
 
 initAccessibility();
