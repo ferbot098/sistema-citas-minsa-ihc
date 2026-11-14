@@ -524,6 +524,80 @@ html.high-contrast .main-nav a[aria-current='page'] {
     font-size: 0.95rem;
 }
 
+/* Login integrado tipo landing */
+.login-hero-grid {
+    grid-template-columns: minmax(0, 1.5fr) minmax(360px, 1fr);
+    align-items: start;
+}
+
+.login-info {
+    padding-top: 0.5rem;
+}
+
+.benefit-list {
+    display: grid;
+    gap: 0.8rem;
+    margin: 1.5rem 0;
+    padding: 0;
+    list-style: none;
+}
+
+.benefit-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.7rem;
+    color: var(--ink);
+    font-weight: 700;
+}
+
+.benefit-check {
+    display: inline-grid;
+    place-items: center;
+    flex: 0 0 auto;
+    width: 1.75rem;
+    height: 1.75rem;
+    border: 2px solid var(--success);
+    border-radius: 50%;
+    background: var(--success-soft);
+    color: var(--success-ink);
+    font-weight: 800;
+    line-height: 1;
+}
+
+.login-card {
+    padding: 1.5rem;
+    background: var(--surface);
+    box-shadow: var(--shadow);
+}
+
+.login-tabs {
+    margin-bottom: 1.25rem;
+}
+
+.login-tabs .tab-btn {
+    display: inline-flex;
+    flex: 1 1 0;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+}
+
+.login-submit {
+    width: 100%;
+    padding: 0.9rem 1rem;
+    font-size: 1.05rem;
+}
+
+.login-steps {
+    padding-top: 1.5rem;
+}
+
+html.high-contrast .benefit-check {
+    background: #000000;
+    color: #ffd400;
+    border-color: #ffd400;
+}
+
 .grid {
     display: grid;
     gap: 1rem;
@@ -1947,6 +2021,7 @@ html.high-contrast dialog::backdrop {
 
 @media (max-width: 900px) {
     .hero-grid,
+    .login-hero-grid,
     .grid-2,
     .grid-3,
     .grid-4,

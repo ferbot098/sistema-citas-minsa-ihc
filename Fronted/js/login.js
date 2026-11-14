@@ -27,18 +27,44 @@ const DESTINOS_POR_ROL = Object.freeze({
     EMPLEADO: 'empleado.html'
 });
 
-const checkExistingSession = () => {
-    if (window.location.hash === '#registro') return;
+function borrarSesionInvalida() {
     try {
-        const session = JSON.parse(localStorage.getItem('minsa_session'));
-        const usuario = session && (session.usuario || session.USUARIO);
-        if (session && session.token && usuario) {
-            const dest = DESTINOS_POR_ROL[usuario.rol];
-            if (dest) {
-                window.location.replace(dest);
-            }
-        }
-    } catch (e) {}
+        localStorage.removeItem('minsa_session');
+    } catch {
+        /* El almacenamiento puede estar deshabilitado por el navegador. */
+    }
+}
+
+const checkExistingSession = () => {
+    let raw = null;
+    try {
+        raw = localStorage.getItem('minsa_session');
+    } catch {
+        return;
+    }
+    if (!raw) return;
+
+    let session = null;
+    try {
+        session = JSON.parse(raw);
+    } catch {
+        borrarSesionInvalida();
+        return;
+    }
+
+    const usuario = session && (session.usuario || session.USUARIO);
+    if (!session || typeof session.token !== 'string' || !session.token || !usuario || !usuario.rol) {
+        borrarSesionInvalida();
+        return;
+    }
+
+    const destino = DESTINOS_POR_ROL[usuario.rol];
+    if (!destino) {
+        borrarSesionInvalida();
+        return;
+    }
+
+    window.location.replace(destino);
 };
 
 window.addEventListener('load', checkExistingSession);
@@ -71,7 +97,7 @@ async function sendingLogin(event) {
         return;
     }
 
-    estadoBoton(btnLogin, true, 'Ingresar al sistema');
+    estadoBoton(btnLogin, true, 'Iniciar Sesión de Paciente');
     try {
         limpiarSesionPreservandoAccesibilidad();
 
@@ -88,14 +114,14 @@ async function sendingLogin(event) {
 
         const destino = DESTINOS_POR_ROL[usuario.rol] || 'index.html';
 
-        estadoBoton(btnLogin, true, 'Ingresar al sistema');
+        estadoBoton(btnLogin, true, 'Iniciar Sesión de Paciente');
         btnLogin.textContent = 'Acceso correcto. Redirigiendo…';
         window.setTimeout(() => {
             window.location.assign(destino);
         }, 700);
     } catch (error) {
         mostrarError('login', error.message || 'No fue posible iniciar sesión.');
-        estadoBoton(btnLogin, false, 'Ingresar al sistema');
+        estadoBoton(btnLogin, false, 'Iniciar Sesión de Paciente');
         password.focus();
         password.select();
     }
