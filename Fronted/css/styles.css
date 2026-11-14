@@ -353,6 +353,40 @@ html.high-contrast .tool-btn[aria-pressed='true'] {
     color: #000000;
 }
 
+.btn-read-section {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.85rem;
+    background-color: var(--primary-soft);
+    color: var(--primary-strong);
+    border: 2px solid var(--primary-strong);
+    border-radius: 999px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-bottom: 1rem;
+}
+
+.btn-read-section:hover,
+.btn-read-section[aria-pressed="true"] {
+    background-color: var(--primary-strong);
+    color: var(--on-primary);
+}
+
+html.high-contrast .btn-read-section {
+    background-color: #000000;
+    color: #ffd400;
+    border-color: #ffd400;
+}
+
+html.high-contrast .btn-read-section:hover,
+html.high-contrast .btn-read-section[aria-pressed="true"] {
+    background-color: #ffd400;
+    color: #000000;
+}
+
 .main-nav {
     border-top: 1px solid rgba(255, 255, 255, 0.28);
 }
@@ -419,6 +453,14 @@ html.high-contrast .main-nav a[aria-current='page'] {
     gap: 2rem;
     grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
     align-items: center;
+}
+
+.hero-grid--single {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.hero-grid--single .readable-section {
+    max-width: 48rem;
 }
 
 .hero h1 {
