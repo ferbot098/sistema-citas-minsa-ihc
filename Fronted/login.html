@@ -47,7 +47,6 @@
                 <ul>
                     <li><a href="index.html">Inicio</a></li>
                     <li><a href="login.html" id="nav-login" aria-current="page">Iniciar sesión</a></li>
-                    <li><a href="login.html#registro" id="nav-registro">Registrarme como paciente</a></li>
                 </ul>
             </div>
         </nav>
@@ -217,81 +216,6 @@
         </div>
     </footer>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const tabLogin = document.getElementById('tab-login');
-            const tabRegister = document.getElementById('tab-register');
-            const panelLogin = document.getElementById('panel-login');
-            const panelRegister = document.getElementById('panel-register');
-            const navLogin = document.getElementById('nav-login');
-            const navRegistro = document.getElementById('nav-registro');
-
-            function activarModo(modo, actualizarUrl = false) {
-                const esRegistro = modo === 'registro';
-
-                if (actualizarUrl) {
-                    try {
-                        const url = esRegistro
-                            ? '#registro'
-                            : window.location.pathname + window.location.search;
-                        window.history.replaceState(null, '', url);
-                    } catch (error) {}
-                }
-
-                tabLogin.setAttribute('aria-selected', String(!esRegistro));
-                tabLogin.tabIndex = esRegistro ? -1 : 0;
-                tabRegister.setAttribute('aria-selected', String(esRegistro));
-                tabRegister.tabIndex = esRegistro ? 0 : -1;
-
-                panelLogin.hidden = esRegistro;
-                panelLogin.classList.toggle('is-active', !esRegistro);
-                panelRegister.hidden = !esRegistro;
-                panelRegister.classList.toggle('is-active', esRegistro);
-
-                if (navLogin && navRegistro) {
-                    if (esRegistro) {
-                        navLogin.removeAttribute('aria-current');
-                        navRegistro.setAttribute('aria-current', 'page');
-                    } else {
-                        navRegistro.removeAttribute('aria-current');
-                        navLogin.setAttribute('aria-current', 'page');
-                    }
-                }
-            }
-
-            tabLogin.addEventListener('click', () => activarModo('login', true));
-            tabRegister.addEventListener('click', () => activarModo('registro', true));
-
-            [tabLogin, tabRegister].forEach((tab) => {
-                tab.addEventListener('keydown', (event) => {
-                    if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
-                        event.preventDefault();
-                        const siguiente = tab === tabLogin ? 'registro' : 'login';
-                        activarModo(siguiente, true);
-                        (siguiente === 'registro' ? tabRegister : tabLogin).focus();
-                    }
-                });
-            });
-
-            function sincronizarConHash() {
-                activarModo(window.location.hash === '#registro' ? 'registro' : 'login');
-            }
-
-            sincronizarConHash();
-            window.addEventListener('hashchange', sincronizarConHash);
-
-            document.querySelectorAll('.toggle-password').forEach((btn) => {
-                btn.addEventListener('click', () => {
-                    const input = document.getElementById(btn.getAttribute('aria-controls'));
-                    if (!input) return;
-                    const visible = btn.getAttribute('aria-expanded') === 'true';
-                    input.type = visible ? 'password' : 'text';
-                    btn.setAttribute('aria-expanded', String(!visible));
-                    btn.textContent = visible ? 'Mostrar contraseña' : 'Ocultar contraseña';
-                });
-            });
-        });
-    </script>
     <script type="module" src="js/shared/accessibility.js"></script>
     <script type="module" src="js/login.js"></script>
 </body>
