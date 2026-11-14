@@ -259,11 +259,43 @@ function renderHospitales() {
 }
 
 /**
+ * Coordenadas de respaldo (Plaza Mayor de Lima) cuando el hospital no informa ubicación.
+ * @type {{ lat: number, lng: number }}
+ */
+const COORDENADAS_RESPALDO = Object.freeze({ lat: -12.046374, lng: -77.042793 });
+
+/**
+ * Obtiene coordenadas numéricas válidas de un hospital.
+ * El endpoint `GET /api/hospitales` devuelve los campos `lat` y `lng`.
+ * @param {Hospital | Record<string, any>} hospital Hospital con coordenadas.
+ * @returns {{ lat: number, lng: number }} Coordenadas con respaldo de Lima.
+ */
+function obtenerCoordenadas(hospital) {
+    const lat = parseFloat(hospital.lat ?? hospital.latitud);
+    const lng = parseFloat(hospital.lng ?? hospital.longitud);
+    if (Number.isFinite(lat) && Number.isFinite(lng)) {
+        return { lat, lng };
+    }
+    return { lat: COORDENADAS_RESPALDO.lat, lng: COORDENADAS_RESPALDO.lng };
+}
+
+/**
+ * Construye el enlace directo de búsqueda en Google Maps para unas coordenadas.
+ * @param {number} lat Latitud.
+ * @param {number} lng Longitud.
+ * @returns {string} URL de Google Maps.
+ */
+function urlGoogleMaps(lat, lng) {
+    return `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+}
+
+/**
  * Inicializa el mapa Leaflet del hospital seleccionado.
  * @returns {void}
  */
 function inicializarMapaPaciente() {
-    if (typeof window.L === 'function' && !estado.mapaPaciente) {
+    const leafletDisponible = Boolean(window.L && typeof window.L.map === 'function');
+    if (leafletDisponible && !estado.mapaPaciente) {
         const contenedor = document.getElementById('mapa-paciente');
         if (!contenedor) return;
         estado.mapaPaciente = window.L.map(contenedor, { scrollWheelZoom: false });
@@ -285,31 +317,34 @@ function actualizarMapaHospital() {
     const info = document.getElementById('mapa-hospital-info');
     const enlace = document.getElementById('btn-abrir-gmaps-paciente');
 
-    if (!hospital || hospital.latitud === undefined || hospital.longitud === undefined) {
+    if (!hospital || !contenedor) {
         if (contenedor) contenedor.hidden = true;
         return;
     }
 
     contenedor.hidden = false;
-    info.textContent = `${hospital.nombre} · ${hospital.distrito} · ${hospital.direccion} · Coordenadas: ${hospital.latitud}, ${hospital.longitud}.`;
+    contenedor.style.display = 'block';
 
-    const lat = Number(hospital.latitud);
-    const lng = Number(hospital.longitud);
-    if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
-        enlace.href = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
-    } else {
-        enlace.href = '#';
+    const { lat, lng } = obtenerCoordenadas(hospital);
+    const red = hospital.red ? `Red ${hospital.red} · ` : '';
+    info.textContent = `${hospital.nombre} · ${red}${hospital.distrito} · ${hospital.direccion} · Coordenadas: ${lat}, ${lng}.`;
+
+    if (enlace) {
+        enlace.href = urlGoogleMaps(lat, lng);
     }
 
+    const popup = `<b>${escapeHtml(hospital.nombre)}</b><br>${escapeHtml(hospital.distrito)} · ${escapeHtml(hospital.direccion)}`;
     inicializarMapaPaciente();
     if (estado.mapaPaciente) {
         if (estado.marcadorPaciente) {
             estado.marcadorPaciente.setLatLng([lat, lng]);
+            estado.marcadorPaciente.setPopupContent(popup);
         } else {
             estado.marcadorPaciente = window.L.marker([lat, lng]).addTo(estado.mapaPaciente)
-                .bindPopup(`<b>${escapeHtml(hospital.nombre)}</b><br>${escapeHtml(hospital.distrito)} · ${escapeHtml(hospital.direccion)}`);
+                .bindPopup(popup);
         }
         estado.mapaPaciente.setView([lat, lng], 15);
+        estado.mapaPaciente.invalidateSize();
         setTimeout(() => estado.mapaPaciente.invalidateSize(), 200);
     }
 }
@@ -436,7 +471,7 @@ async function cargarMedicos() {
  * @returns {void}
  */
 function pintarResumen() {
-    const usuario = estado.USUARIO;
+    const usuario = estado.usuario;
     const hospital = estado.hospital;
     const especialidad = estado.especialidad;
     const horario = estado.horario;
@@ -444,28 +479,46 @@ function pintarResumen() {
 
     document.getElementById('resumen-paciente').textContent = usuario ? usuario.nombres : '—';
     document.getElementById('resumen-dni').textContent = usuario ? usuario.dni : '—';
-    document.getElementById('resumen-hospital').textContent = hospital ? hospital.nombre : '—';
     document.getElementById('resumen-especialidad').textContent = especialidad ? especialidad.nombre : '—';
     document.getElementById('resumen-medico').textContent = medico ? `${medico.nombre} (${medico.cmp})` : '—';
     document.getElementById('resumen-fecha').textContent = horario ? formatFecha(horario.dia) : '—';
     document.getElementById('resumen-hora').textContent = horario ? horario.hora : '—';
 
     const hospitalResumen = document.getElementById('resumen-hospital');
-    if (hospital && hospital.latitud !== undefined && hospital.longitud !== undefined) {
-        const lat = Number(hospital.latitud);
-        const lng = Number(hospital.longitud);
-        if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
-            const enlace = document.createElement('a');
-            enlace.href = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
-            enlace.target = '_blank';
-            enlace.rel = 'noopener noreferrer';
-            enlace.className = 'btn btn-secondary btn-small';
-            enlace.style.marginLeft = '0.5rem';
-            enlace.textContent = '📍 Ver ubicación en Google Maps';
-            hospitalResumen.textContent = hospital.nombre;
-            hospitalResumen.parentElement.appendChild(enlace);
-        }
+    hospitalResumen.textContent = hospital ? hospital.nombre : '—';
+
+    const enlacePrevio = document.getElementById('resumen-hospital-maps');
+    if (enlacePrevio) {
+        enlacePrevio.remove();
     }
+
+    if (hospital) {
+        const { lat, lng } = obtenerCoordenadas(hospital);
+        const enlace = document.createElement('a');
+        enlace.id = 'resumen-hospital-maps';
+        enlace.href = urlGoogleMaps(lat, lng);
+        enlace.target = '_blank';
+        enlace.rel = 'noopener noreferrer';
+        enlace.className = 'btn btn-secondary btn-small';
+        enlace.style.marginLeft = '0.5rem';
+        enlace.textContent = '📍 Ver en Google Maps';
+        hospitalResumen.append(' ', enlace);
+    }
+}
+
+/**
+ * Devuelve el enlace de Google Maps para el hospital de una cita del historial.
+ * @param {Record<string, any>} cita Cita del historial.
+ * @returns {string} URL de Google Maps.
+ */
+function urlMapaCita(cita) {
+    const hospital = estado.hospitales.find((item) => Number(item.id) === Number(cita.hospital_id))
+        || estado.hospitales.find((item) => item.nombre === cita.hospital_nombre);
+    if (hospital) {
+        const { lat, lng } = obtenerCoordenadas(hospital);
+        return urlGoogleMaps(lat, lng);
+    }
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(cita.hospital_nombre || '')}`;
 }
 
 /**
@@ -506,7 +559,7 @@ function renderCitas() {
             <tr>
                 <th scope="row">${escapeHtml(cita.codigo_atencion)}</th>
                 <td>${escapeHtml(formatFecha(cita.fecha_cita))}<span class="choice-meta">${escapeHtml(cita.hora_cita)}</span></td>
-                <td>${escapeHtml(cita.hospital_nombre)}</td>
+                <td>${escapeHtml(cita.hospital_nombre)}<span class="choice-meta"><a href="${escapeHtml(urlMapaCita(cita))}" target="_blank" rel="noopener noreferrer">📍 Ver en Google Maps</a></span></td>
                 <td>${escapeHtml(cita.especialidad_nombre)}</td>
                 <td>${escapeHtml(cita.medico_nombre)}</td>
                 <td>${htmlEstado(cita.estado)}</td>

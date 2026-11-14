@@ -923,6 +923,21 @@ function actualizarEspecialidadesDesdeHospitales() {
 }
 
 /**
+ * Obtiene coordenadas numéricas válidas de un hospital.
+ * El endpoint `GET /api/hospitales` devuelve los campos `lat` y `lng`.
+ * @param {Record<string, any>} hospital Hospital con coordenadas.
+ * @returns {{ lat: number, lng: number }} Coordenadas con respaldo de Lima.
+ */
+function obtenerCoordenadas(hospital) {
+    const lat = parseFloat(hospital.lat ?? hospital.latitud);
+    const lng = parseFloat(hospital.lng ?? hospital.longitud);
+    if (Number.isFinite(lat) && Number.isFinite(lng)) {
+        return { lat, lng };
+    }
+    return { lat: -12.046374, lng: -77.042793 };
+}
+
+/**
  * Renderiza la tabla de lugares de atención registrados.
  * @returns {void}
  */
@@ -946,8 +961,7 @@ function renderHospitales() {
 
     cuerpo.innerHTML = estado.hospitales.map((hospital) => {
         const especialidades = (hospital.especialidades || []).map((especialidad) => especialidad.nombre);
-        const lat = Number(hospital.latitud);
-        const lng = Number(hospital.longitud);
+        const { lat, lng } = obtenerCoordenadas(hospital);
         const coordsValidas = !Number.isNaN(lat) && !Number.isNaN(lng);
         const coordenadas = coordsValidas ? `${lat.toFixed(4)}, ${lng.toFixed(4)}` : '—';
         const enlaceMaps = coordsValidas
@@ -977,7 +991,8 @@ function renderMapaHospitales() {
     const contenedor = document.getElementById('mapa-lugares-admin');
     if (!contenedor) return;
 
-    if (typeof window.L !== 'function') {
+    const leafletDisponible = Boolean(window.L && typeof window.L.map === 'function');
+    if (!leafletDisponible) {
         contenedor.innerHTML = '<p class="empty-state">La biblioteca de mapas no est\u00e1 disponible.</p>';
         return;
     }
@@ -1005,8 +1020,7 @@ function renderMapaHospitales() {
 
     const bounds = [];
     estado.hospitales.forEach((hospital) => {
-        const lat = Number(hospital.latitud);
-        const lng = Number(hospital.longitud);
+        const { lat, lng } = obtenerCoordenadas(hospital);
         if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
             bounds.push([lat, lng]);
             window.L.marker([lat, lng]).addTo(estado.mapaAdmin)
