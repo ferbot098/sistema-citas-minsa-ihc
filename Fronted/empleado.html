@@ -16,12 +16,19 @@
             var prefs = JSON.parse(localStorage.getItem('minsa_a11y_preferences') || '{}');
             if (prefs.contraste) { document.documentElement.classList.add('high-contrast'); }
             if (prefs.textoGrande) { document.documentElement.classList.add('large-text', 'texto-grande'); }
+            
+            var raw = localStorage.getItem('minsa_session');
+            if (!raw) {
+                window.location.replace('index.html');
+            } else {
+                var s = JSON.parse(raw);
+                if (!s || !s.token || !s.usuario || (s.usuario.rol !== 'EMPLEADO' && s.usuario.rol !== 'ADMIN')) {
+                    window.location.replace('index.html');
+                }
+            }
         } catch (error) {
-            /* Sin preferencias guardadas se usa el tema institucional por defecto. */
+            window.location.replace('index.html');
         }
-        // Redirigir al login: el acceso directo al portal de personal está deshabilitado.
-        // Los endpoints de API (ej. GET /api/diagnosticos/cita/:citaId) siguen funcionando para el paciente.
-        window.location.replace('login.html?redir=empleado');
     </script>
 </head>
 <body>
@@ -29,38 +36,28 @@
     <div id="aria-alertas" class="sr-only" aria-live="assertive" aria-atomic="true" role="alert"></div>
     <div id="aria-estado" class="sr-only" aria-live="polite" aria-atomic="true" role="status"></div>
 
-    <header class="site-header">
-        <div class="container header-inner">
-            <a class="brand" href="index.html" aria-label="MINSA, ir al inicio">
-                <span class="brand-mark" aria-hidden="true">✚</span>
-                <span>
-                    <span class="brand-title">MINSA</span>
-                    <span class="brand-subtitle">Portal del Personal Asistencial</span>
-                </span>
-            </a>
-            <div class="header-actions" role="group" aria-label="Herramientas de accesibilidad">
-                <span class="user-chip"><span aria-hidden="true">🩺</span> <strong id="chip-usuario">Personal</strong></span>
-                <button type="button" id="btn-contrast" class="tool-btn" aria-pressed="false">
-                    <span aria-hidden="true">◐</span> Alto contraste
-                </button>
-                <button type="button" id="btn-text" class="tool-btn" aria-pressed="false">
-                    <span aria-hidden="true">A+</span> Texto grande
-                </button>
-                <button type="button" id="btn-speak" class="tool-btn" aria-pressed="false" aria-label="Escuchar la página actual en voz alta">
-                    <span aria-hidden="true">🔊</span> Escuchar página
-                </button>
-                <button type="button" id="btn-logout" class="tool-btn">Cerrar sesión</button>
+    <!-- Header MINSA con barra unificada -->
+    <header class="minsa-bar d-flex justify-content-between align-items-center px-4 py-3 flex-wrap gap-2" style="background-color: #002B40; color: white;">
+        <div class="d-flex align-items-center gap-3">
+            <div class="logo-m bg-white text-primary fw-bold rounded p-1 px-2" style="font-size: 1.2rem; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;" aria-hidden="true">M</div>
+            <div>
+                <h1 class="h6 mb-0 fw-bold text-white">MINSA</h1>
+                <p class="mb-0 text-white-50 small" style="font-size: 0.75rem;">Portal del Personal Asistencial</p>
             </div>
         </div>
-        <nav class="main-nav" aria-label="Navegación del portal del personal">
-            <div class="container">
-                <ul>
-                    <li><a href="#agenda" aria-current="page">Mi agenda</a></li>
-                    <li><a href="#horarios">Mis horarios</a></li>
-                    <li><a href="index.html">Inicio</a></li>
-                </ul>
-            </div>
-        </nav>
+        <div class="d-flex align-items-center gap-2 flex-wrap" role="toolbar" aria-label="Herramientas de accesibilidad y usuario">
+            <span class="text-white small fw-semibold me-2"><span aria-hidden="true">🩺</span> <strong id="chip-usuario">Personal</strong></span>
+            <button type="button" id="btn-contrast" class="btn btn-sm btn-outline-light rounded-pill px-3" aria-pressed="false">
+                <span aria-hidden="true">◐</span> Alto contraste
+            </button>
+            <button type="button" id="btn-text" class="btn btn-sm btn-warning rounded-pill px-3 fw-semibold text-dark" aria-pressed="false">
+                <span aria-hidden="true">A+</span> Texto grande
+            </button>
+            <button type="button" id="btn-speak" class="btn btn-sm btn-light rounded-pill px-3 fw-semibold" aria-pressed="false" aria-label="Escuchar la página actual en voz alta">
+                <span aria-hidden="true">🔊</span> Escuchar página
+            </button>
+            <button type="button" id="btn-logout" class="btn btn-sm btn-outline-light rounded-pill px-3 fw-semibold" aria-label="Cerrar sesión del sistema">Cerrar sesión</button>
+        </div>
     </header>
 
     <main id="contenido" tabindex="-1">
@@ -180,7 +177,7 @@
                         <p id="horarios-alert-texto"></p>
                     </div>
 
-                    <form id="form-horario" class="form-grid" novalidate>
+                    <form id="form-horario" class="form-grid" novalidate autocomplete="off" aria-label="Formulario para publicar nuevo bloque horario">
                         <div class="field">
                             <label for="fecha-horario">Fecha del bloque</label>
                             <input class="form-control" type="date" id="fecha-horario" required aria-describedby="ayuda-fecha-horario">
@@ -317,7 +314,7 @@
         </div>
     </dialog>
 
-    <footer class="site-footer">
+    <footer class="site-footer" role="contentinfo">
         <div class="container footer-grid">
             <div>
                 <h2>MINSA</h2>

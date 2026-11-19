@@ -1,336 +1,1230 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Portal del paciente del Sistema Inclusivo de Citas Médicas del MINSA: reserva en cuatro pasos, historial, reprogramación y cancelación.">
-    <meta name="theme-color" content="#005a6b">
+    <meta name="description" content="Portal del paciente del Sistema Inclusivo de Citas Médicas del MINSA: reserve y gestione sus citas médicas.">
     <title>Portal del Paciente | Sistema Inclusivo de Citas Médicas - MINSA</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-    <link rel="stylesheet" href="css/styles.css">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="css/reserva.css">
+
     <script>
         try {
             var prefs = JSON.parse(localStorage.getItem('minsa_a11y_preferences') || '{}');
             if (prefs.contraste) { document.documentElement.classList.add('high-contrast'); }
-            if (prefs.textoGrande) { document.documentElement.classList.add('large-text', 'texto-grande'); }
-        } catch (error) {
-            /* Sin preferencias guardadas se usa el tema institucional por defecto. */
-        }
+            if (prefs.textoGrande) { document.documentElement.classList.add('large-text'); }
+        } catch (error) {}
     </script>
 </head>
-<body>
-    <a class="skip-link" href="#contenido">Saltar al contenido principal</a>
-    <div id="aria-alertas" class="sr-only" aria-live="assertive" aria-atomic="true" role="alert"></div>
-    <div id="aria-estado" class="sr-only" aria-live="polite" aria-atomic="true" role="status"></div>
 
-    <header class="site-header">
-        <div class="container header-inner">
-            <a class="brand" href="index.html" aria-label="MINSA, ir al inicio">
-                <span class="brand-mark" aria-hidden="true">✚</span>
-                <span>
-                    <span class="brand-title">MINSA</span>
-                    <span class="brand-subtitle">Portal del Paciente</span>
-                </span>
-            </a>
-            <div class="header-actions" role="group" aria-label="Herramientas de accesibilidad">
-                <span class="user-chip"><span aria-hidden="true">👤</span> <strong id="chip-usuario">Paciente</strong></span>
-                <button type="button" id="btn-contrast" class="tool-btn" aria-pressed="false">
-                    <span aria-hidden="true">◐</span> Alto contraste
-                </button>
-                <button type="button" id="btn-text" class="tool-btn" aria-pressed="false">
-                    <span aria-hidden="true">A+</span> Texto grande
-                </button>
-                <button type="button" id="btn-speak" class="tool-btn" aria-pressed="false" aria-label="Escuchar la página actual en voz alta">
-                    <span aria-hidden="true">🔊</span> Escuchar página
-                </button>
-                <button type="button" id="btn-logout" class="tool-btn">Cerrar sesión</button>
+<body onload="inicializarReserva()">
+    <a class="skip-link" href="#main-reserva">Saltar al contenido principal</a>
+
+    <!-- Header MINSA con barra de accesibilidad integrada -->
+    <header class="minsa-bar d-flex justify-content-between align-items-center px-4 py-3 flex-wrap gap-2"
+        style="background-color: #002B40;">
+        <div class="d-flex align-items-center gap-3">
+            <div class="logo-m bg-white text-primary fw-bold rounded p-1 px-2" style="font-size: 1.2rem;" aria-hidden="true">M</div>
+            <div>
+                <h1 class="h6 mb-0 fw-bold text-white">Ministerio de Salud</h1>
+                <p class="mb-0 text-white-50 small" style="font-size: 0.75rem;">Sistema Inclusivo de Citas Médicas</p>
             </div>
         </div>
-        <nav class="main-nav" aria-label="Navegación del portal del paciente">
-            <div class="container">
-                <ul>
-                    <li><a href="#reserva">Reservar cita</a></li>
-                    <li><a href="#historial">Mis citas</a></li>
-                    <li><a href="index.html">Inicio</a></li>
-                </ul>
-            </div>
-        </nav>
+
+        <!-- Controles de Accesibilidad Globales -->
+        <div class="d-flex align-items-center gap-2 flex-wrap" role="toolbar" aria-label="Herramientas de accesibilidad y usuario">
+            <button type="button" onclick="alternarAltoContraste()" class="btn btn-sm btn-outline-light rounded-pill px-3 fw-semibold"
+                style="font-size: 0.8rem;" aria-label="Alternar modo de alto contraste">
+                <i class="fa-solid fa-circle-half-stroke me-1" aria-hidden="true"></i> Alto contraste
+            </button>
+            <button type="button" onclick="alternarTextoGrande()"
+                class="btn btn-sm btn-warning rounded-pill px-3 fw-semibold text-dark" style="font-size: 0.8rem;" aria-label="Aumentar o reducir tamaño del texto">
+                <i class="fa-solid fa-text-height me-1" aria-hidden="true"></i> A+ Texto grande
+            </button>
+            <button type="button" onclick="escucharPagina()" id="btnAudio"
+                class="btn btn-sm btn-outline-light rounded-pill px-3 fw-semibold" style="font-size: 0.8rem;" aria-label="Escuchar la página en voz alta">
+                <i class="fa-solid fa-volume-high me-1" aria-hidden="true"></i> Escuchar página
+            </button>
+
+            <span class="text-white-50" aria-hidden="true">|</span>
+
+            <span class="text-white small fw-semibold">
+                <i class="fa-solid fa-user me-1" aria-hidden="true"></i> <span id="lblPacienteNombre">Paciente</span>
+            </span>
+
+            <button type="button" onclick="verMisCitas()" class="btn btn-sm btn-outline-light rounded-pill px-3 fw-semibold" aria-label="Ver mi historial de citas médicas">
+                <i class="fa-solid fa-calendar-check me-1" aria-hidden="true"></i> Mis Citas
+            </button>
+
+            <button type="button" onclick="cerrarSesion()" class="btn btn-sm btn-outline-light rounded-pill px-3 fw-semibold" aria-label="Cerrar sesión actual">
+                Cerrar Sesión
+            </button>
+        </div>
     </header>
 
-    <main id="contenido" tabindex="-1">
-        <div class="container page-shell">
-            <section class="section" aria-labelledby="titulo-paciente">
-                <p class="eyebrow">Atención ciudadana</p>
-                <h1 id="titulo-paciente">Hola, <span id="nombre-paciente">paciente</span></h1>
-                <p class="lead">
-                    Reserve su cita en cuatro pasos. El sistema bloquea el cupo de forma inmediata
-                    para evitar que otra persona lo tome mientras confirma.
-                </p>
-                <p id="resumen-citas" class="status" aria-live="polite"></p>
-            </section>
+    <!-- Contenido Principal -->
+    <main id="main-reserva" class="container my-4" style="max-width: 900px;" tabindex="-1">
 
-            <section id="reserva" class="section" aria-labelledby="titulo-reserva">
-                <div class="card">
-                    <div class="card-head">
-                        <div>
-                            <p class="eyebrow">Reserva en línea</p>
-                            <h2 id="titulo-reserva">Reservar una nueva cita</h2>
-                            <p class="card-subtitle">Complete los cuatro pasos y confirme su atención.</p>
-                        </div>
+        <!-- Indicador de Pasos -->
+        <div class="d-flex justify-content-center align-items-center mb-4 text-center" role="navigation" aria-label="Progreso de reserva">
+            <div class="px-3">
+                <div id="stepCircle1"
+                    class="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center fw-bold"
+                    style="width: 30px; height: 30px; font-size: 0.85rem;" aria-current="step">1</div>
+                <div id="stepText1" class="small fw-bold text-primary mt-1">Especialidad</div>
+            </div>
+            <div id="stepLine1" style="width: 50px; height: 2px; background-color: #cbd5e1;" aria-hidden="true"></div>
+            <div class="px-3">
+                <div id="stepCircle2"
+                    class="rounded-circle bg-light border text-muted d-inline-flex align-items-center justify-content-center fw-bold"
+                    style="width: 30px; height: 30px; font-size: 0.85rem;">2</div>
+                <div id="stepText2" class="small fw-bold text-muted mt-1">Horario</div>
+            </div>
+            <div id="stepLine2" style="width: 50px; height: 2px; background-color: #cbd5e1;" aria-hidden="true"></div>
+            <div class="px-3 text-muted">
+                <div id="stepCircle3"
+                    class="rounded-circle bg-light border text-muted d-inline-flex align-items-center justify-content-center fw-bold"
+                    style="width: 30px; height: 30px; font-size: 0.85rem;">3</div>
+                <div id="stepText3" class="small fw-bold text-muted mt-1">Confirmación</div>
+            </div>
+        </div>
+
+        <div class="card card-reserva p-4 p-md-5 border-0 shadow-sm rounded-4">
+
+            <!-- VISTA 1: HOSPITAL Y ESPECIALIDAD -->
+            <div id="vistaPaso1">
+                <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                    <div>
+                        <span class="text-uppercase text-muted fw-bold" style="font-size: 0.7rem; letter-spacing: 1px;">PASO 1 DE 3</span>
+                        <h2 class="h4 fw-bold text-dark mb-1">¿Dónde desea atenderse?</h2>
+                        <p class="text-muted small mb-0">Seleccione el centro de salud y la especialidad médica que necesita.</p>
                     </div>
+                    <button type="button" class="btn btn-sm btn-outline-secondary btn-escuchar-seccion"
+                        onclick="toggleEscucharSeccion('vistaPaso1', this)"
+                        aria-label="Escuchar paso 1: selección de centro de salud y especialidad médica" aria-pressed="false">
+                        <i class="fa-solid fa-volume-high me-1" aria-hidden="true"></i> Escuchar sección
+                    </button>
+                </div>
 
-                    <ol class="stepper" id="stepper" aria-label="Progreso de la reserva de cita">
-                        <li class="stepper-item" data-paso="1" aria-current="step">
-                            <span class="stepper-number" aria-hidden="true">1</span>
-                            <span>Hospital</span>
-                        </li>
-                        <li class="stepper-item" data-paso="2">
-                            <span class="stepper-number" aria-hidden="true">2</span>
-                            <span>Especialidad</span>
-                        </li>
-                        <li class="stepper-item" data-paso="3">
-                            <span class="stepper-number" aria-hidden="true">3</span>
-                            <span>Médico y horario</span>
-                        </li>
-                        <li class="stepper-item" data-paso="4">
-                            <span class="stepper-number" aria-hidden="true">4</span>
-                            <span>Confirmación</span>
-                        </li>
-                    </ol>
+                <div class="mb-3">
+                    <label for="selectHospital" class="form-label fw-bold small text-secondary">Centro de salud</label>
+                    <select id="selectHospital" class="form-select fw-semibold" onchange="cambiarHospitalSeleccionado()">
+                        <option value="">Cargando establecimientos de salud...</option>
+                    </select>
+                </div>
 
-                    <div id="reserva-alert" class="alert alert-error" role="alert" hidden>
-                        <span class="alert-icon" aria-hidden="true">⚠️</span>
-                        <p id="reserva-alert-texto"></p>
+                <div class="mb-4">
+                    <div class="ratio ratio-21x9 rounded overflow-hidden border shadow-sm">
+                        <iframe id="iframeMapa" src="" style="border:0;" allowfullscreen="" loading="lazy" title="Ubicación geográfica del hospital seleccionado"></iframe>
                     </div>
-
-                    <div id="panel-paso-1" class="panel" data-panel="1">
-                        <h3 id="titulo-paso-1" tabindex="-1">Paso 1 de 4: elija un hospital</h3>
-                        <p class="help">Solo se muestran establecimientos activos de la red asistencial.</p>
-                        <div id="lista-hospitales" class="choice-grid" role="radiogroup" aria-labelledby="titulo-paso-1">
-                            <p class="loading-state"><span class="loading-spinner" aria-hidden="true"></span> Cargando hospitales…</p>
-                        </div>
-                        <div id="mapa-hospital-contenedor" hidden style="margin-top: 1.25rem;">
-                            <h3>Ubicación del establecimiento seleccionado</h3>
-                            <p id="mapa-hospital-info" class="help"></p>
-                            <div id="mapa-paciente" style="height: 280px; border-radius: 10px; border: 2px solid var(--border);" role="region" aria-label="Mapa de ubicación del hospital seleccionado"></div>
-                            <a id="btn-abrir-gmaps-paciente" class="btn btn-secondary btn-small" href="#" target="_blank" rel="noopener noreferrer" style="margin-top: 0.75rem;">📍 Ver en Google Maps</a>
-                        </div>
-                        <div class="panel-actions">
-                            <span></span>
-                            <button type="button" id="btn-paso-1-continuar" class="btn btn-primary" disabled>Continuar a especialidades</button>
-                        </div>
-                    </div>
-
-                    <div id="panel-paso-2" class="panel" data-panel="2" hidden>
-                        <h3 id="titulo-paso-2" tabindex="-1">Paso 2 de 4: elija una especialidad</h3>
-                        <p class="help" id="hospital-elegido">Hospital seleccionado.</p>
-                        <div id="lista-especialidades" class="choice-grid" role="radiogroup" aria-labelledby="titulo-paso-2"></div>
-                        <div class="panel-actions">
-                            <button type="button" id="btn-paso-2-volver" class="btn btn-secondary">Volver a hospitales</button>
-                            <button type="button" id="btn-paso-2-continuar" class="btn btn-primary" disabled>Continuar a médicos</button>
-                        </div>
-                    </div>
-
-                    <div id="panel-paso-3" class="panel" data-panel="3" hidden>
-                        <h3 id="titulo-paso-3" tabindex="-1">Paso 3 de 4: elija médico y horario</h3>
-                        <p class="help" id="especialidad-elegida">Especialidad seleccionada.</p>
-                        <div id="lista-medicos">
-                            <p class="loading-state"><span class="loading-spinner" aria-hidden="true"></span> Cargando médicos y horarios…</p>
-                        </div>
-                        <div class="panel-actions">
-                            <button type="button" id="btn-paso-3-volver" class="btn btn-secondary">Volver a especialidades</button>
-                            <button type="button" id="btn-paso-3-continuar" class="btn btn-primary" disabled>Revisar y confirmar</button>
-                        </div>
-                    </div>
-
-                    <div id="panel-paso-4" class="panel" data-panel="4" hidden>
-                        <h3 id="titulo-paso-4" tabindex="-1">Paso 4 de 4: confirme su cita</h3>
-                        <div id="reserva-confirmar-alert" class="alert alert-error" role="alert" hidden>
-                            <span class="alert-icon" aria-hidden="true">⚠️</span>
-                            <p id="reserva-confirmar-alert-texto"></p>
-                        </div>
-                        <dl class="summary-list">
-                            <dt>Paciente</dt>
-                            <dd id="resumen-paciente">—</dd>
-                            <dt>DNI</dt>
-                            <dd id="resumen-dni">—</dd>
-                            <dt>Hospital</dt>
-                            <dd id="resumen-hospital">—</dd>
-                            <dt>Especialidad</dt>
-                            <dd id="resumen-especialidad">—</dd>
-                            <dt>Médico</dt>
-                            <dd id="resumen-medico">—</dd>
-                            <dt>Fecha</dt>
-                            <dd id="resumen-fecha">—</dd>
-                            <dt>Hora</dt>
-                            <dd id="resumen-hora">—</dd>
-                        </dl>
-                        <div class="panel-actions">
-                            <button type="button" id="btn-paso-4-volver" class="btn btn-secondary">Volver a horarios</button>
-                            <button type="button" id="btn-confirmar" class="btn btn-primary">Confirmar cita y bloquear cupo</button>
-                        </div>
-                    </div>
-
-                    <div id="panel-confirmacion" class="panel" data-panel="5" hidden>
-                        <div class="confirmation">
-                            <span class="confirmation-icon" aria-hidden="true">✅</span>
-                            <h3 id="titulo-confirmacion" tabindex="-1">Su cita fue confirmada</h3>
-                            <p id="confirmacion-detalle">—</p>
-                            <p class="kpi-value" id="codigo-atencion">—</p>
-                            <p class="help">Guarde su código de atención. También puede consultarlo en Mis citas.</p>
-                        </div>
-                        <div class="panel-actions">
-                            <button type="button" id="btn-nueva-reserva" class="btn btn-secondary">Reservar otra cita</button>
-                            <a class="btn btn-primary" href="#historial">Ver mis citas</a>
-                        </div>
+                    <div id="lblDireccionHospital" class="text-muted small mt-2">
+                        <i class="fa-solid fa-location-dot text-danger me-1" aria-hidden="true"></i> Cargando ubicación...
                     </div>
                 </div>
-            </section>
 
-            <section id="historial" class="section" aria-labelledby="titulo-historial">
-                <div class="card">
-                    <div class="card-head">
-                        <div>
-                            <p class="eyebrow">Trazabilidad</p>
-                            <h2 id="titulo-historial">Mis citas</h2>
-                            <p class="card-subtitle">Consulte, reprograme o cancele únicamente sus propias citas.</p>
-                        </div>
-                        <button type="button" id="btn-recargar-citas" class="btn btn-secondary btn-small">Actualizar historial</button>
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+                        <label class="form-label fw-bold small text-secondary mb-0">Especialidad médica</label>
+                        <span class="text-muted small" id="lblEspecialidadesResumen">Seleccione para ver médicos y cupos</span>
                     </div>
-
-                    <div id="historial-alert" class="alert alert-info" role="status" hidden>
-                        <span class="alert-icon" aria-hidden="true">ℹ️</span>
-                        <p id="historial-alert-texto"></p>
+                    <div id="contenedorEspecialidades" class="row g-3" role="radiogroup" aria-label="Especialidades médicas disponibles">
+                        <!-- Dinámico con médicos y cupos libres -->
                     </div>
+                    <input type="hidden" id="especialidadSeleccionadaId" required>
+                </div>
 
-                    <div id="citas-loading" class="loading-state">
-                        <span class="loading-spinner" aria-hidden="true"></span> Cargando su historial de citas…
+                <button type="button" id="btnIrHorarios" onclick="irAVistaHorarios()" class="btn btn-primary w-100 fw-bold py-3 shadow-sm"
+                    style="background-color: #0056b3; border: none;" disabled>
+                    Ver horarios <i class="fa-solid fa-arrow-right ms-2" aria-hidden="true"></i>
+                </button>
+            </div>
+
+            <!-- VISTA 2: CALENDARIO MENSUAL, MÉDICOS Y TURNOS -->
+            <div id="vistaPaso2" class="d-none">
+                <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                    <div>
+                        <span class="text-uppercase text-muted fw-bold" style="font-size: 0.7rem; letter-spacing: 1px;">PASO 2 DE 3</span>
+                        <h2 class="h4 fw-bold text-dark mb-1">Elija médico, fecha y horario</h2>
+                        <p class="text-muted small mb-0">Horarios para <strong id="lblNombreEspecialidad" class="text-primary">Especialidad</strong> en <span id="lblNombreHospitalText">Hospital</span>.</p>
                     </div>
+                    <button type="button" class="btn btn-sm btn-outline-secondary btn-escuchar-seccion"
+                        onclick="toggleEscucharSeccion('vistaPaso2', this)"
+                        aria-label="Escuchar paso 2: selección de médico, fecha y horario disponible" aria-pressed="false">
+                        <i class="fa-solid fa-volume-high me-1" aria-hidden="true"></i> Escuchar sección
+                    </button>
+                </div>
 
-                    <p id="citas-empty" class="empty-state" hidden>No tiene citas registradas todavía. Use el formulario de reserva para crear la primera.</p>
-
-                    <div id="citas-tabla-contenedor" class="table-responsive" hidden>
-                        <table class="data-table">
-                            <caption id="caption-citas">Historial de citas del paciente</caption>
-                            <thead>
-                                <tr>
-                                    <th scope="col">Código</th>
-                                    <th scope="col">Fecha y hora</th>
-                                    <th scope="col">Hospital</th>
-                                    <th scope="col">Especialidad</th>
-                                    <th scope="col">Médico</th>
-                                    <th scope="col">Estado</th>
-                                    <th scope="col">Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody id="cuerpo-citas"></tbody>
-                        </table>
+                <!-- SELECTOR / FILTRO DE MÉDICOS -->
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+                        <label class="form-label fw-bold text-secondary small mb-0" id="lblFiltroMedicos">
+                            <i class="fa-solid fa-user-doctor text-primary me-1" aria-hidden="true"></i> Médicos disponibles para esta especialidad
+                        </label>
+                        <small class="text-muted fw-semibold" id="lblMedicosCount">Cargando médicos...</small>
+                    </div>
+                    <div id="contenedorFiltroMedicos" class="row g-2" role="radiogroup" aria-labelledby="lblFiltroMedicos">
+                        <!-- Tarjetas interactivas de doctores generadas dinámicamente -->
                     </div>
                 </div>
-            </section>
+
+                <!-- SELECTOR DE DÍAS: CALENDARIO -->
+                <div class="card border rounded-3 p-3 mb-4 shadow-sm bg-white">
+                    <div class="d-flex justify-content-between align-items-center mb-3 px-2">
+                        <h3 class="h5 fw-bold text-dark mb-0" id="lblMesAnioCalendario">Noviembre 2026</h3>
+                        <small class="text-muted fw-semibold" id="lblEspecialidadCardLabel">Especialidad</small>
+                    </div>
+
+                    <div class="row text-center fw-bold text-muted small mb-2" style="font-size: 0.75rem;">
+                        <div class="col">Lun</div>
+                        <div class="col">Mar</div>
+                        <div class="col">Mié</div>
+                        <div class="col">Jue</div>
+                        <div class="col">Vie</div>
+                        <div class="col">Sáb</div>
+                        <div class="col">Dom</div>
+                    </div>
+
+                    <div class="calendar-grid mb-2" id="grillaCalendario" role="grid" aria-label="Calendario de turnos médicos">
+                        <!-- Celdas del calendario generadas dinámicamente -->
+                    </div>
+                </div>
+
+                <!-- SELECTOR DE HORARIOS CON HORA Y ESTADO LIBRE/OCUPADO -->
+                <div class="mb-4">
+                    <label class="form-label fw-bold text-secondary small mb-2" id="lblTituloHorariosDisponibles">Horarios disponibles</label>
+                    <div id="contenedorHorariosDia" class="row g-3" role="radiogroup" aria-labelledby="lblTituloHorariosDisponibles">
+                        <p class="text-muted small">Seleccione un día del calendario que tenga cupos disponibles.</p>
+                    </div>
+                </div>
+
+                <input type="hidden" id="inputHorarioId" required>
+                <input type="hidden" id="inputFecha" required>
+                <input type="hidden" id="inputHora" required>
+                <input type="hidden" id="inputMedico" required>
+                <input type="hidden" id="inputMedicoCmp" required>
+
+                <div class="d-flex gap-2">
+                    <button type="button" onclick="regresarAPaso1()" class="btn btn-outline-secondary w-50 fw-bold py-3">
+                        <i class="fa-solid fa-arrow-left me-2" aria-hidden="true"></i> Volver
+                    </button>
+                    <button type="button" id="btnRevisarCita" onclick="irAVistaConfirmacion()"
+                        class="btn btn-primary w-50 fw-bold py-3 shadow-sm"
+                        style="background-color: #0056b3; border: none;" disabled>
+                        Revisar cita <i class="fa-solid fa-arrow-right ms-2" aria-hidden="true"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- VISTA 3: CONFIRMACIÓN Y ADVERTENCIA -->
+            <div id="vistaPaso3" class="d-none">
+                <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+                    <div>
+                        <span class="text-uppercase text-muted fw-bold" style="font-size: 0.7rem; letter-spacing: 1px;">PASO 3 DE 3</span>
+                        <h2 class="h4 fw-bold text-dark mb-1">Revise los datos de su cita</h2>
+                        <p class="text-muted small mb-0">Confirme que toda la información sea correcta antes de reservar.</p>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-secondary btn-escuchar-seccion"
+                        onclick="toggleEscucharSeccion('vistaPaso3', this)"
+                        aria-label="Escuchar paso 3: revisión de los datos de su cita médica" aria-pressed="false">
+                        <i class="fa-solid fa-volume-high me-1" aria-hidden="true"></i> Escuchar sección
+                    </button>
+                </div>
+
+                <div class="card border rounded-3 p-4 mb-4 shadow-sm position-relative bg-white">
+                    <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-3">
+                        <div>
+                            <span class="text-muted small d-block" style="font-size: 0.75rem;">Cita médica</span>
+                            <h3 id="resumenEspecialidad" class="h5 fw-bold text-dark mb-0">Especialidad</h3>
+                        </div>
+                        <span class="badge text-dark px-3 py-2 fw-semibold"
+                            style="font-size: 0.75rem; background-color: #fef08a !important;">Por confirmar</span>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-6">
+                            <span class="text-muted small d-block" style="font-size: 0.75rem;">Paciente</span>
+                            <span id="resumenPaciente" class="fw-semibold text-dark">Nombre</span>
+                        </div>
+                        <div class="col-6">
+                            <span class="text-muted small d-block" style="font-size: 0.75rem;">DNI</span>
+                            <span id="resumenDni" class="fw-semibold text-dark">DNI</span>
+                        </div>
+                    </div>
+
+                    <div class="mb-3 border-top pt-3">
+                        <span class="text-muted small d-block" style="font-size: 0.75rem;">Centro de salud</span>
+                        <span id="resumenHospital" class="fw-semibold text-dark">Hospital</span>
+                    </div>
+
+                    <div class="row g-3 mb-3 border-top pt-3">
+                        <div class="col-6">
+                            <span class="text-muted small d-block" style="font-size: 0.75rem;">Fecha</span>
+                            <span id="resumenFecha" class="fw-semibold text-dark">Fecha</span>
+                        </div>
+                        <div class="col-6">
+                            <span class="text-muted small d-block" style="font-size: 0.75rem;">Hora</span>
+                            <span id="resumenHora" class="fw-semibold text-dark">Hora</span>
+                        </div>
+                    </div>
+
+                    <div class="border-top pt-3">
+                        <span class="text-muted small d-block" style="font-size: 0.75rem;">Médico</span>
+                        <span id="resumenMedico" class="fw-semibold text-dark">Médico</span>
+                    </div>
+                </div>
+
+                <div class="alert alert-warning py-2 px-3 small d-flex align-items-center gap-2 mb-4" role="alert">
+                    <i class="fa-solid fa-triangle-exclamation text-warning fs-5" aria-hidden="true"></i>
+                    <span><strong>Aviso importante:</strong> Por favor, acérquese al establecimiento de salud de
+                        <strong>10 a 15 minutos antes</strong> de su cita programada.</span>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="button" onclick="regresarAPaso2()" class="btn btn-outline-secondary w-50 fw-bold py-3">
+                        Cambiar horario
+                    </button>
+                    <button type="button" id="btnConfirmarReserva" onclick="ejecutarReservaFinal()"
+                        class="btn btn-success w-50 fw-bold py-3 shadow-sm"
+                        style="background-color: #047857; border: none;">
+                        <i class="fa-solid fa-check me-2" aria-hidden="true"></i> Confirmar cita
+                    </button>
+                </div>
+            </div>
+
+            <!-- VISTA 4: ÉXITO -->
+            <div id="vistaExito" class="d-none text-center py-4">
+                <div class="mb-3 text-success display-2">
+                    <i class="bi bi-check-circle-fill"></i>
+                </div>
+                <h2 class="h3 fw-bold text-dark mb-2">¡Cita Confirmada con Éxito!</h2>
+                <p class="text-muted mb-3" id="exitoDetalle">Su cita ha sido registrada y el cupo ha quedado bloqueado a su nombre.</p>
+                <div class="p-3 bg-light rounded-4 d-inline-block px-5 mb-4">
+                    <span class="text-muted small d-block">Código de Atención</span>
+                    <strong class="display-6 text-primary fw-bold" id="exitoCodigoAtencion">M-0000</strong>
+                </div>
+                <div class="d-flex justify-content-center gap-3">
+                    <button type="button" onclick="reiniciarFlujoReserva()" class="btn btn-outline-primary fw-bold px-4 py-2 rounded-pill">
+                        Reservar otra cita
+                    </button>
+                    <button type="button" onclick="verMisCitas()" class="btn btn-primary fw-bold px-4 py-2 rounded-pill" style="background-color: #0056b3;">
+                        Ver mis citas
+                    </button>
+                </div>
+            </div>
+
         </div>
     </main>
 
-    <dialog id="dlg-reprogramar" aria-labelledby="titulo-dlg-reprogramar">
-        <div class="dialog-card">
-            <div class="dialog-head">
-                <h2 id="titulo-dlg-reprogramar">Reprogramar cita</h2>
-                <button type="button" class="dialog-close" data-cerrar-dialog="dlg-reprogramar" aria-label="Cerrar el diálogo de reprogramación">✕</button>
-            </div>
-            <p id="reprogramar-resumen" class="help"></p>
-            <div id="reprogramar-alert" class="alert alert-error" role="alert" hidden>
-                <span class="alert-icon" aria-hidden="true">⚠️</span>
-                <p id="reprogramar-alert-texto"></p>
-            </div>
-            <form id="form-reprogramar" novalidate>
-                <input type="hidden" id="reprogramar-cita-id">
-                <fieldset class="field">
-                    <legend>Nuevo horario disponible</legend>
-                    <div id="reprogramar-slots">
-                        <p class="loading-state"><span class="loading-spinner" aria-hidden="true"></span> Buscando horarios libres…</p>
+    <!-- Modal de Mis Citas -->
+    <div id="modalMisCitas" class="modal fade" tabindex="-1" aria-labelledby="modalMisCitasLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content p-4 rounded-4 shadow bg-white border-0">
+                <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2 flex-wrap gap-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <h5 class="fw-bold text-dark m-0" id="modalMisCitasLabel">
+                            <i class="fa-solid fa-calendar-days text-primary me-2" aria-hidden="true"></i>Mis Citas Médicas Reservadas
+                        </h5>
+                        <button type="button" class="btn btn-sm btn-outline-primary btn-escuchar-seccion ms-2"
+                            onclick="toggleEscucharSeccion('listaMisCitasContainer', this)"
+                            aria-label="Escuchar mis citas médicas reservadas" aria-pressed="false">
+                            <i class="fa-solid fa-volume-high me-1" aria-hidden="true"></i> Escuchar sección
+                        </button>
                     </div>
-                </fieldset>
-                <div class="field">
-                    <label for="reprogramar-motivo">Motivo de la reprogramación (opcional)</label>
-                    <textarea class="form-control" id="reprogramar-motivo" rows="3" maxlength="255"></textarea>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                 </div>
-                <div class="btn-row">
-                    <button type="submit" id="btn-confirmar-reprogramar" class="btn btn-primary">Guardar nueva fecha</button>
-                    <button type="button" class="btn btn-secondary" data-cerrar-dialog="dlg-reprogramar">Cancelar</button>
+                <div id="listaMisCitasContainer" style="max-height: 400px; overflow-y: auto;">
+                    <p class="text-center text-muted py-4">Cargando citas...</p>
                 </div>
-            </form>
+            </div>
         </div>
-    </dialog>
+    </div>
 
-    <dialog id="dlg-cancelar" aria-labelledby="titulo-dlg-cancelar">
-        <div class="dialog-card">
-            <div class="dialog-head">
-                <h2 id="titulo-dlg-cancelar">Cancelar cita</h2>
-                <button type="button" class="dialog-close" data-cerrar-dialog="dlg-cancelar" aria-label="Cerrar el diálogo de cancelación">✕</button>
-            </div>
-            <p id="cancelar-resumen" class="help"></p>
-            <div id="cancelar-alert" class="alert alert-error" role="alert" hidden>
-                <span class="alert-icon" aria-hidden="true">⚠️</span>
-                <p id="cancelar-alert-texto"></p>
-            </div>
-            <form id="form-cancelar" novalidate>
-                <input type="hidden" id="cancelar-cita-id">
-                <div class="field">
-                    <label for="cancelar-motivo">Motivo de la cancelación (opcional)</label>
-                    <textarea class="form-control" id="cancelar-motivo" rows="3" maxlength="255"></textarea>
+    <!-- Modal de Confirmación de Cancelación -->
+    <div class="modal fade" id="modalConfirmacion" tabindex="-1" aria-labelledby="modalConfirmacionLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-body text-center p-4">
+                    <div class="mb-3 text-warning fs-1" aria-hidden="true">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                    </div>
+                    <h5 class="fw-bold text-dark mb-2" id="modalConfirmacionLabel">¿Estás seguro?</h5>
+                    <p class="text-muted small mb-4" id="mensajeConfirmacionTexto">¿Deseas cancelar esta cita médica? El horario quedará libre nuevamente.</p>
+                    <div class="d-flex justify-content-center gap-2">
+                        <button type="button" class="btn btn-light px-4 rounded-pill fw-semibold" data-bs-dismiss="modal">Conservar cita</button>
+                        <button type="button" id="btnConfirmarAccion" class="btn btn-danger px-4 rounded-pill fw-semibold">Sí, cancelar</button>
+                    </div>
                 </div>
-                <div class="btn-row">
-                    <button type="submit" id="btn-confirmar-cancelar" class="btn btn-danger">Confirmar cancelación</button>
-                    <button type="button" class="btn btn-secondary" data-cerrar-dialog="dlg-cancelar">Conservar mi cita</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Diagnóstico -->
+    <div class="modal fade" id="modalDiagnostico" tabindex="-1" aria-labelledby="modalDiagLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4 p-3">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title fw-bold text-dark" id="modalDiagLabel"><i class="fa-solid fa-notes-medical text-primary me-2"></i>Diagnóstico Médico</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                 </div>
-            </form>
+                <div class="modal-body" id="modalDiagContenido">
+                    <p class="text-muted">Cargando diagnóstico...</p>
+                </div>
+            </div>
         </div>
-    </dialog>
+    </div>
 
-    <dialog id="dlg-diagnostico" aria-labelledby="titulo-dlg-diagnostico">
-        <div class="dialog-card">
-            <div class="dialog-head">
-                <h2 id="titulo-dlg-diagnostico" tabindex="-1">Diagnóstico médico</h2>
-                <button type="button" class="dialog-close" data-cerrar-dialog="dlg-diagnostico" aria-label="Cerrar el diálogo de diagnóstico">✕</button>
-            </div>
-            <p id="diagnostico-resumen" class="help"></p>
-            <div id="diagnostico-alert" class="alert alert-error" role="alert" hidden>
-                <span class="alert-icon" aria-hidden="true">⚠️</span>
-                <p id="diagnostico-alert-texto"></p>
-            </div>
-            <div id="diagnostico-contenido"></div>
-            <div class="btn-row">
-                <button type="button" class="btn btn-secondary" data-cerrar-dialog="dlg-diagnostico">Cerrar</button>
-            </div>
-        </div>
-    </dialog>
-
-    <footer class="site-footer">
-        <div class="container footer-grid">
-            <div>
-                <h2>MINSA</h2>
-                <p>Portal del paciente para la reserva y gestión de citas médicas.</p>
-            </div>
-            <div>
-                <h2>Accesos</h2>
-                <ul>
-                    <li><a href="index.html">Inicio</a></li>
-                    <li><a href="#reserva">Reservar cita</a></li>
-                    <li><a href="#historial">Mis citas</a></li>
-                </ul>
-            </div>
-            <div>
-                <h2>Accesibilidad</h2>
-                <p>Estados con icono y texto, foco visible, anuncios aria-live y lectura en voz alta.</p>
-            </div>
-        </div>
+    <!-- Footer -->
+    <footer class="text-center py-3 text-muted small border-top bg-white mt-auto" role="contentinfo">
+        <p class="mb-0">© 2026 Ministerio de Salud del Perú - Todos los derechos reservados.</p>
     </footer>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script type="module" src="js/paciente.js"></script>
+    <!-- Bootstrap Bundle JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Lógica de Reserva conectada a la API local -->
+    <script>
+        let pacienteDni = '';
+        let pacienteNombre = '';
+        let authToken = '';
+        let listaHospitalesGlobal = [];
+        let hospitalSeleccionado = null;
+        let especialidadSeleccionada = null;
+
+        // Catálogo de doctores y turnos
+        let medicosHospitalGlobal = [];       // Todos los médicos del hospital seleccionado (para indicadores de Paso 1)
+        let medicosEspecialidadGlobal = [];   // Médicos de la especialidad elegida (Paso 2)
+        let medicoFiltroSeleccionadoId = null;// ID del médico filtrado (null = todos)
+        let turnosPorDia = {};                // { 'YYYY-MM-DD': [ { id, hora, dia, disponible, medicoId, medicoNombre, cmp } ] }
+        let fechaSeleccionada = '';
+        let horarioSeleccionadoId = null;
+        let citaIdACancelar = null;
+
+        function obtenerSesionActiva() {
+            try {
+                const sesionRaw = localStorage.getItem('minsa_session');
+                if (sesionRaw) {
+                    const sesion = JSON.parse(sesionRaw);
+                    if (sesion && sesion.token && sesion.usuario) {
+                        return sesion;
+                    }
+                }
+            } catch (e) {}
+            return null;
+        }
+
+        async function inicializarReserva() {
+            const sesion = obtenerSesionActiva();
+            if (!sesion) {
+                window.location.replace('index.html');
+                return;
+            }
+
+            authToken = sesion.token;
+            pacienteNombre = sesion.usuario.nombres || 'Paciente';
+            pacienteDni = sesion.usuario.dni || '';
+
+            document.getElementById('lblPacienteNombre').innerText = pacienteNombre;
+
+            await cargarHospitalesSelect();
+        }
+
+        async function cargarHospitalesSelect() {
+            const select = document.getElementById('selectHospital');
+            try {
+                const res = await fetch('/api/hospitales');
+                listaHospitalesGlobal = await res.json();
+
+                select.innerHTML = '<option value="">-- Seleccione un centro de salud --</option>';
+                listaHospitalesGlobal.forEach(h => {
+                    const opt = document.createElement('option');
+                    opt.value = h.id;
+                    opt.innerText = `${h.nombre} (${h.distrito || h.red || 'Lima'})`;
+                    select.appendChild(opt);
+                });
+
+                if (listaHospitalesGlobal.length > 0) {
+                    select.value = listaHospitalesGlobal[0].id;
+                    await cambiarHospitalSeleccionado();
+                }
+            } catch (err) {
+                console.error(err);
+                select.innerHTML = '<option value="">Error al cargar establecimientos</option>';
+            }
+        }
+
+        async function cambiarHospitalSeleccionado() {
+            const select = document.getElementById('selectHospital');
+            const hospId = Number(select.value);
+            hospitalSeleccionado = listaHospitalesGlobal.find(h => Number(h.id) === hospId);
+
+            if (!hospitalSeleccionado) {
+                document.getElementById('lblDireccionHospital').innerHTML = '<i class="fa-solid fa-location-dot text-danger me-1"></i> Seleccione un hospital válido.';
+                document.getElementById('contenedorEspecialidades').innerHTML = '';
+                document.getElementById('btnIrHorarios').disabled = true;
+                return;
+            }
+
+            document.getElementById('lblDireccionHospital').innerHTML = 
+                `<i class="fa-solid fa-location-dot text-danger me-1"></i> ${hospitalSeleccionado.direccion || 'Lima, Perú'} · Red ${hospitalSeleccionado.red || 'Metropolitana'}`;
+
+            const lat = hospitalSeleccionado.lat || hospitalSeleccionado.latitud || -12.046374;
+            const lng = hospitalSeleccionado.lng || hospitalSeleccionado.longitud || -77.042793;
+            document.getElementById('iframeMapa').src = `https://maps.google.com/maps?q=${lat},${lng}&z=15&output=embed`;
+
+            // Mostrar estado de carga en la lista de especialidades
+            const contenedor = document.getElementById('contenedorEspecialidades');
+            contenedor.innerHTML = '<div class="col-12 text-center text-muted py-3"><span class="spinner-border spinner-border-sm me-2"></span> Consultando médicos y cupos en tiempo real...</div>';
+
+            try {
+                // Consultar todos los médicos del hospital para obtener conteos y cupos libres
+                const res = await fetch(`/api/doctores?hospitalId=${hospitalSeleccionado.id}`);
+                medicosHospitalGlobal = await res.json();
+            } catch (e) {
+                console.error('Error al cargar médicos del hospital:', e);
+                medicosHospitalGlobal = [];
+            }
+
+            renderizarEspecialidadesGrid(hospitalSeleccionado.especialidades || []);
+        }
+
+        function renderizarEspecialidadesGrid(especialidades) {
+            const contenedor = document.getElementById('contenedorEspecialidades');
+            contenedor.innerHTML = '';
+            especialidadSeleccionada = null;
+            document.getElementById('especialidadSeleccionadaId').value = '';
+            document.getElementById('btnIrHorarios').disabled = true;
+
+            if (!especialidades || especialidades.length === 0) {
+                contenedor.innerHTML = '<div class="col-12 text-muted small p-3">No hay especialidades registradas para este establecimiento.</div>';
+                return;
+            }
+
+            let totalCuposHospital = 0;
+
+            especialidades.forEach(esp => {
+                // Filtrar doctores correspondientes a esta especialidad en este hospital
+                const medicosEsp = medicosHospitalGlobal.filter(m => Number(m.especialidadId) === Number(esp.id));
+                const numMedicos = medicosEsp.length;
+                const cuposLibres = medicosEsp.reduce((acc, m) => {
+                    return acc + (m.horarios || []).filter(h => h.disponible).length;
+                }, 0);
+
+                totalCuposHospital += cuposLibres;
+
+                const col = document.createElement('div');
+                col.className = 'col-6 col-md-4';
+                col.innerHTML = `
+                    <div class="especialidad-card h-100 p-3" id="espCard_${esp.id}"
+                        onclick="seleccionarEspecialidad(${esp.id}, '${esp.nombre}')"
+                        role="button" tabindex="0"
+                        aria-label="${esp.nombre}: ${numMedicos} médico${numMedicos === 1 ? '' : 's'}, ${cuposLibres} cupos disponibles">
+                        <div class="fs-2 mb-2 text-primary" aria-hidden="true">${esp.icono || '🩺'}</div>
+                        <h4 class="h6 fw-bold text-dark mb-1">${esp.nombre}</h4>
+                        <div class="mt-2 pt-2 border-top d-flex justify-content-center gap-1 flex-wrap">
+                            <span class="badge ${numMedicos > 0 ? 'bg-primary-subtle text-primary border' : 'bg-light text-muted border'}" style="font-size: 0.7rem;">
+                                <i class="fa-solid fa-user-doctor me-1" aria-hidden="true"></i>${numMedicos} médico${numMedicos === 1 ? '' : 's'}
+                            </span>
+                            <span class="badge ${cuposLibres > 0 ? 'bg-success-subtle text-success border' : 'bg-light text-muted border'}" style="font-size: 0.7rem;">
+                                <i class="fa-solid fa-clock me-1" aria-hidden="true"></i>${cuposLibres} cupo${cuposLibres === 1 ? '' : 's'}
+                            </span>
+                        </div>
+                    </div>
+                `;
+                contenedor.appendChild(col);
+            });
+
+            const resumenLbl = document.getElementById('lblEspecialidadesResumen');
+            if (resumenLbl) {
+                resumenLbl.innerText = `${especialidades.length} especialidades · ${totalCuposHospital} cupos libres en total`;
+            }
+        }
+
+        function seleccionarEspecialidad(id, nombre) {
+            document.querySelectorAll('.especialidad-card').forEach(c => c.classList.remove('selected'));
+            const card = document.getElementById(`espCard_${id}`);
+            if (card) card.classList.add('selected');
+
+            especialidadSeleccionada = { id, nombre };
+            document.getElementById('especialidadSeleccionadaId').value = id;
+            document.getElementById('btnIrHorarios').disabled = false;
+        }
+
+        async function irAVistaHorarios() {
+            if (!hospitalSeleccionado || !especialidadSeleccionada) {
+                alert('Por favor elija un centro de salud y una especialidad médica.');
+                return;
+            }
+
+            document.getElementById('lblNombreEspecialidad').innerText = especialidadSeleccionada.nombre;
+            document.getElementById('lblEspecialidadCardLabel').innerText = especialidadSeleccionada.nombre;
+            document.getElementById('lblNombreHospitalText').innerText = hospitalSeleccionado.nombre;
+
+            document.getElementById('vistaPaso1').classList.add('d-none');
+            document.getElementById('vistaPaso2').classList.remove('d-none');
+
+            document.getElementById('stepCircle1').className = 'rounded-circle bg-success text-white d-inline-flex align-items-center justify-content-center fw-bold';
+            document.getElementById('stepCircle1').innerHTML = '<i class="fa-solid fa-check"></i>';
+            document.getElementById('stepCircle2').className = 'rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center fw-bold';
+            document.getElementById('stepText2').className = 'small fw-bold text-primary mt-1';
+
+            await cargarHorariosMedicos();
+        }
+
+        async function cargarHorariosMedicos() {
+            const contenedorTurnos = document.getElementById('contenedorHorariosDia');
+            contenedorTurnos.innerHTML = '<p class="text-muted small"><span class="spinner-border spinner-border-sm me-2"></span> Buscando disponibilidad médica...</p>';
+            fechaSeleccionada = '';
+            horarioSeleccionadoId = null;
+            medicoFiltroSeleccionadoId = null;
+            document.getElementById('btnRevisarCita').disabled = true;
+
+            try {
+                const res = await fetch(`/api/doctores?hospitalId=${hospitalSeleccionado.id}&especialidadId=${especialidadSeleccionada.id}`);
+                const doctores = await res.json();
+                medicosEspecialidadGlobal = doctores;
+
+                renderizarFiltroMedicos();
+                procesarTurnosYRenderizarCalendario();
+            } catch (err) {
+                console.error(err);
+                contenedorTurnos.innerHTML = '<p class="text-danger small">Error al consultar turnos disponibles.</p>';
+            }
+        }
+
+        function renderizarFiltroMedicos() {
+            const contenedor = document.getElementById('contenedorFiltroMedicos');
+            const lblCount = document.getElementById('lblMedicosCount');
+            contenedor.innerHTML = '';
+
+            const totalCupos = medicosEspecialidadGlobal.reduce((acc, doc) => {
+                return acc + (doc.horarios || []).filter(h => h.disponible).length;
+            }, 0);
+
+            if (lblCount) {
+                lblCount.innerText = `${medicosEspecialidadGlobal.length} médico(s) · ${totalCupos} cupo(s) libres`;
+            }
+
+            // Opción 1: 'Todos los médicos'
+            const colAll = document.createElement('div');
+            colAll.className = 'col-md-4 col-sm-6';
+            colAll.innerHTML = `
+                <div class="doctor-filter-card ${medicoFiltroSeleccionadoId === null ? 'selected' : ''}"
+                    id="docCard_all" onclick="filtrarPorDoctor(null)"
+                    role="button" tabindex="0"
+                    aria-label="Ver horarios de todos los médicos, ${totalCupos} cupos libres">
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="doctor-avatar bg-primary text-white rounded-circle d-flex align-items-center justify-content-center">
+                            <i class="fa-solid fa-users"></i>
+                        </div>
+                        <div class="text-truncate">
+                            <strong class="d-block text-truncate small">Todos los médicos</strong>
+                            <span class="badge ${totalCupos > 0 ? 'bg-primary-subtle text-primary border' : 'bg-light text-muted border'}" style="font-size: 0.7rem;">
+                                ${totalCupos} cupos libres
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            contenedor.appendChild(colAll);
+
+            // Tarjetas individuales de médicos
+            medicosEspecialidadGlobal.forEach(doc => {
+                const cuposDoc = (doc.horarios || []).filter(h => h.disponible).length;
+                const esSeleccionado = medicoFiltroSeleccionadoId === doc.id;
+
+                const colDoc = document.createElement('div');
+                colDoc.className = 'col-md-4 col-sm-6';
+                colDoc.innerHTML = `
+                    <div class="doctor-filter-card ${esSeleccionado ? 'selected' : ''}"
+                        id="docCard_${doc.id}" onclick="filtrarPorDoctor(${doc.id})"
+                        role="button" tabindex="0"
+                        aria-label="${doc.nombre}, ${doc.cmp || 'CMP'}, ${cuposDoc} cupos libres">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="doctor-avatar bg-light border text-primary rounded-circle d-flex align-items-center justify-content-center">
+                                <i class="fa-solid fa-user-doctor"></i>
+                            </div>
+                            <div class="text-truncate" style="flex: 1;">
+                                <strong class="d-block text-truncate small">${doc.nombre}</strong>
+                                <small class="text-muted d-block" style="font-size: 0.7rem;">${doc.cmp || 'CMP Registrado'} ${doc.rating ? '· ★ ' + doc.rating : ''}</small>
+                                <span class="badge ${cuposDoc > 0 ? 'bg-success-subtle text-success border' : 'bg-secondary-subtle text-muted'}" style="font-size: 0.68rem;">
+                                    ${cuposDoc} cupos libres
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                contenedor.appendChild(colDoc);
+            });
+        }
+
+        function filtrarPorDoctor(medicoId) {
+            medicoFiltroSeleccionadoId = medicoId;
+
+            // Actualizar estado activo en tarjetas de médicos
+            document.querySelectorAll('.doctor-filter-card').forEach(c => c.classList.remove('selected'));
+            const targetId = medicoId === null ? 'docCard_all' : `docCard_${medicoId}`;
+            const targetCard = document.getElementById(targetId);
+            if (targetCard) targetCard.classList.add('selected');
+
+            procesarTurnosYRenderizarCalendario();
+        }
+
+        function procesarTurnosYRenderizarCalendario() {
+            turnosPorDia = {};
+
+            const docsAProcesar = medicoFiltroSeleccionadoId === null
+                ? medicosEspecialidadGlobal
+                : medicosEspecialidadGlobal.filter(d => d.id === medicoFiltroSeleccionadoId);
+
+            docsAProcesar.forEach(doc => {
+                (doc.horarios || []).forEach(hr => {
+                    const diaIso = hr.dia.slice(0, 10);
+                    if (!turnosPorDia[diaIso]) {
+                        turnosPorDia[diaIso] = [];
+                    }
+                    turnosPorDia[diaIso].push({
+                        id: hr.id,
+                        hora: hr.hora,
+                        dia: diaIso,
+                        disponible: Boolean(hr.disponible),
+                        medicoId: doc.id,
+                        medicoNombre: doc.nombre,
+                        cmp: doc.cmp
+                    });
+                });
+            });
+
+            // Ordenar turnos de cada día por hora
+            Object.keys(turnosPorDia).forEach(dia => {
+                turnosPorDia[dia].sort((a, b) => a.hora.localeCompare(b.hora));
+            });
+
+            renderizarCalendario();
+        }
+
+        function renderizarCalendario() {
+            const grilla = document.getElementById('grillaCalendario');
+            grilla.innerHTML = '';
+
+            const ahora = new Date();
+            const anio = ahora.getFullYear();
+            const mes = ahora.getMonth();
+
+            const nombresMeses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+            document.getElementById('lblMesAnioCalendario').innerText = `${nombresMeses[mes]} ${anio}`;
+
+            const primerDiaMes = new Date(anio, mes, 1);
+            let diaSemanaInicio = primerDiaMes.getDay(); // 0 dom, 1 lun...
+            diaSemanaInicio = (diaSemanaInicio === 0) ? 6 : diaSemanaInicio - 1; // lunes = 0
+
+            const totalDiasMes = new Date(anio, mes + 1, 0).getDate();
+
+            // Celdas vacías previas
+            for (let i = 0; i < diaSemanaInicio; i++) {
+                const celdaVacia = document.createElement('div');
+                celdaVacia.className = 'calendar-day is-disabled';
+                grilla.appendChild(celdaVacia);
+            }
+
+            // Días del mes
+            for (let d = 1; d <= totalDiasMes; d++) {
+                const diaStr = String(d).padStart(2, '0');
+                const mesStr = String(mes + 1).padStart(2, '0');
+                const fechaIso = `${anio}-${mesStr}-${diaStr}`;
+                const turnosDia = turnosPorDia[fechaIso] || [];
+                const cuposDisponibles = turnosDia.filter(t => t.disponible).length;
+                const tieneCupos = cuposDisponibles > 0;
+
+                const celda = document.createElement('div');
+                celda.className = `calendar-day ${tieneCupos ? 'tiene-cupos' : 'is-disabled'}`;
+                celda.id = `calDay_${fechaIso}`;
+                celda.setAttribute('role', 'gridcell');
+                celda.setAttribute('aria-label', `${d} de ${nombresMeses[mes]} de ${anio}, ${cuposDisponibles} cupos libres`);
+
+                celda.innerHTML = `
+                    <span class="fw-bold">${d}</span>
+                    ${tieneCupos ? '<span class="dot-available" title="Cupos disponibles"></span>' : '<small class="text-muted" style="font-size:0.6rem;">-</small>'}
+                `;
+
+                if (tieneCupos) {
+                    celda.onclick = () => seleccionarDiaCalendario(fechaIso);
+                }
+
+                grilla.appendChild(celda);
+            }
+
+            // Seleccionar automáticamente el primer día con cupos disponibles
+            const diasConCupos = Object.keys(turnosPorDia).filter(dia => turnosPorDia[dia].some(t => t.disponible)).sort();
+            if (diasConCupos.length > 0) {
+                // Si la fecha previamente seleccionada sigue teniendo cupos, mantenerla; si no, la primera disponible
+                const fechaAElegir = (fechaSeleccionada && diasConCupos.includes(fechaSeleccionada))
+                    ? fechaSeleccionada
+                    : diasConCupos[0];
+                seleccionarDiaCalendario(fechaAElegir);
+            } else {
+                document.getElementById('contenedorHorariosDia').innerHTML = 
+                    '<p class="text-muted small">No hay cupos disponibles para el filtro médico seleccionado.</p>';
+                document.getElementById('btnRevisarCita').disabled = true;
+            }
+        }
+
+        function seleccionarDiaCalendario(fechaIso) {
+            document.querySelectorAll('.calendar-day').forEach(c => c.classList.remove('selected'));
+            const celda = document.getElementById(`calDay_${fechaIso}`);
+            if (celda) celda.classList.add('selected');
+
+            fechaSeleccionada = fechaIso;
+            horarioSeleccionadoId = null;
+            document.getElementById('btnRevisarCita').disabled = true;
+
+            const turnos = turnosPorDia[fechaIso] || [];
+            const contenedor = document.getElementById('contenedorHorariosDia');
+            contenedor.innerHTML = '';
+
+            const cuposLibresDia = turnos.filter(t => t.disponible).length;
+            document.getElementById('lblTituloHorariosDisponibles').innerHTML = 
+                `Horarios para el <strong>${fechaIso}</strong> <span class="badge bg-success-subtle text-success ms-2 border">${cuposLibresDia} disponible(s)</span>`;
+
+            if (turnos.length === 0) {
+                contenedor.innerHTML = '<p class="text-muted small">No hay horarios registrados en esta fecha.</p>';
+                return;
+            }
+
+            turnos.forEach(t => {
+                const col = document.createElement('div');
+                col.className = 'col-6 col-md-4';
+
+                if (t.disponible) {
+                    col.innerHTML = `
+                        <button type="button" class="slot-btn libre shadow-sm" id="slotBtn_${t.id}"
+                            onclick="seleccionarTurnoHorario(${t.id}, '${t.hora}', '${t.medicoNombre}', '${t.cmp || ''}')"
+                            aria-label="Turno ${t.hora} con ${t.medicoNombre}, Disponible">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="fw-bold text-primary fs-6">${t.hora}</span>
+                                <span class="badge bg-success-subtle text-success border" style="font-size: 0.68rem;">Libre</span>
+                            </div>
+                            <small class="text-muted d-block text-truncate text-start" style="font-size: 0.72rem;">
+                                <i class="fa-solid fa-user-doctor me-1" aria-hidden="true"></i>${t.medicoNombre}
+                            </small>
+                        </button>
+                    `;
+                } else {
+                    col.innerHTML = `
+                        <div class="slot-btn ocupado" aria-disabled="true" title="Turno no disponible">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="fw-semibold text-muted text-decoration-line-through">${t.hora}</span>
+                                <span class="badge bg-secondary-subtle text-muted border" style="font-size: 0.68rem;">Ocupado</span>
+                            </div>
+                            <small class="text-muted d-block text-truncate text-start" style="font-size: 0.72rem;">
+                                <i class="fa-solid fa-user-doctor me-1" aria-hidden="true"></i>${t.medicoNombre}
+                            </small>
+                        </div>
+                    `;
+                }
+                contenedor.appendChild(col);
+            });
+        }
+
+        function seleccionarTurnoHorario(horarioId, hora, medicoNombre, cmp) {
+            document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('selected'));
+            const btn = document.getElementById(`slotBtn_${horarioId}`);
+            if (btn) btn.classList.add('selected');
+
+            horarioSeleccionadoId = horarioId;
+            document.getElementById('inputHorarioId').value = horarioId;
+            document.getElementById('inputFecha').value = fechaSeleccionada;
+            document.getElementById('inputHora').value = hora;
+            document.getElementById('inputMedico').value = medicoNombre;
+            document.getElementById('inputMedicoCmp').value = cmp || '';
+
+            document.getElementById('btnRevisarCita').disabled = false;
+        }
+
+        function regresarAPaso1() {
+            document.getElementById('vistaPaso2').classList.add('d-none');
+            document.getElementById('vistaPaso1').classList.remove('d-none');
+            document.getElementById('stepCircle1').className = 'rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center fw-bold';
+            document.getElementById('stepCircle1').innerText = '1';
+            document.getElementById('stepCircle2').className = 'rounded-circle bg-light border text-muted d-inline-flex align-items-center justify-content-center fw-bold';
+            document.getElementById('stepText2').className = 'small fw-bold text-muted mt-1';
+        }
+
+        function irAVistaConfirmacion() {
+            if (!horarioSeleccionadoId) {
+                alert('Seleccione un horario de atención disponible.');
+                return;
+            }
+
+            const cmp = document.getElementById('inputMedicoCmp').value;
+            const medicoTexto = cmp
+                ? `${document.getElementById('inputMedico').value} (${cmp})`
+                : document.getElementById('inputMedico').value;
+
+            document.getElementById('resumenEspecialidad').innerText = especialidadSeleccionada.nombre;
+            document.getElementById('resumenPaciente').innerText = pacienteNombre;
+            document.getElementById('resumenDni').innerText = pacienteDni;
+            document.getElementById('resumenHospital').innerText = hospitalSeleccionado.nombre;
+            document.getElementById('resumenFecha').innerText = document.getElementById('inputFecha').value;
+            document.getElementById('resumenHora').innerText = document.getElementById('inputHora').value;
+            document.getElementById('resumenMedico').innerText = medicoTexto;
+
+            document.getElementById('vistaPaso2').classList.add('d-none');
+            document.getElementById('vistaPaso3').classList.remove('d-none');
+
+            document.getElementById('stepCircle2').className = 'rounded-circle bg-success text-white d-inline-flex align-items-center justify-content-center fw-bold';
+            document.getElementById('stepCircle2').innerHTML = '<i class="fa-solid fa-check"></i>';
+            document.getElementById('stepCircle3').className = 'rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center fw-bold';
+            document.getElementById('stepText3').className = 'small fw-bold text-primary mt-1';
+        }
+
+        function regresarAPaso2() {
+            document.getElementById('vistaPaso3').classList.add('d-none');
+            document.getElementById('vistaPaso2').classList.remove('d-none');
+            document.getElementById('stepCircle2').className = 'rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center fw-bold';
+            document.getElementById('stepCircle2').innerText = '2';
+            document.getElementById('stepCircle3').className = 'rounded-circle bg-light border text-muted d-inline-flex align-items-center justify-content-center fw-bold';
+            document.getElementById('stepText3').className = 'small fw-bold text-muted mt-1';
+        }
+
+        async function ejecutarReservaFinal() {
+            const btn = document.getElementById('btnConfirmarReserva');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Confirmando...';
+
+            try {
+                const res = await fetch('/api/citas', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ horarioId: Number(horarioSeleccionadoId) })
+                });
+
+                const data = await res.json();
+
+                if (res.ok && data.cita) {
+                    document.getElementById('exitoCodigoAtencion').innerText = data.cita.codigo_atencion || 'M-OK';
+                    document.getElementById('exitoDetalle').innerText = 
+                        `Su cita en ${data.cita.hospital_nombre || hospitalSeleccionado.nombre} para ${data.cita.especialidad_nombre || especialidadSeleccionada.nombre} ha sido confirmada.`;
+
+                    document.getElementById('vistaPaso3').classList.add('d-none');
+                    document.getElementById('vistaExito').classList.remove('d-none');
+
+                    document.getElementById('stepCircle3').className = 'rounded-circle bg-success text-white d-inline-flex align-items-center justify-content-center fw-bold';
+                    document.getElementById('stepCircle3').innerHTML = '<i class="fa-solid fa-check"></i>';
+                } else {
+                    alert(data.error || data.mensaje || 'No se pudo reservar el turno. Es posible que otro paciente lo haya tomado.');
+                    await cargarHorariosMedicos();
+                    regresarAPaso2();
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Error al procesar la reserva con el servidor.');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-check me-2" aria-hidden="true"></i> Confirmar cita';
+            }
+        }
+
+        function reiniciarFlujoReserva() {
+            document.getElementById('vistaExito').classList.add('d-none');
+            document.getElementById('vistaPaso1').classList.remove('d-none');
+            document.getElementById('stepCircle1').className = 'rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center fw-bold';
+            document.getElementById('stepCircle1').innerText = '1';
+            document.getElementById('stepCircle2').className = 'rounded-circle bg-light border text-muted d-inline-flex align-items-center justify-content-center fw-bold';
+            document.getElementById('stepCircle2').innerText = '2';
+            document.getElementById('stepCircle3').className = 'rounded-circle bg-light border text-muted d-inline-flex align-items-center justify-content-center fw-bold';
+            document.getElementById('stepCircle3').innerText = '3';
+            cargarHospitalesSelect();
+        }
+
+        // ==========================================
+        // MIS CITAS Y CANCELACIÓN
+        // ==========================================
+        async function verMisCitas() {
+            const modalEl = document.getElementById('modalMisCitas');
+            const myModal = new bootstrap.Modal(modalEl);
+            myModal.show();
+
+            const container = document.getElementById('listaMisCitasContainer');
+            container.innerHTML = '<p class="text-center text-muted py-4"><span class="spinner-border spinner-border-sm me-2"></span> Cargando sus citas...</p>';
+
+            try {
+                const res = await fetch('/api/citas', {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                const citas = await res.json();
+
+                if (!Array.isArray(citas) || citas.length === 0) {
+                    container.innerHTML = '<p class="text-center text-muted py-4">No tiene citas reservadas registradas.</p>';
+                    return;
+                }
+
+                container.innerHTML = '';
+                citas.forEach(c => {
+                    const activa = c.estado === 'RESERVADA' || c.estado === 'REPROGRAMADA';
+                    const badgeClass = activa ? 'bg-primary' : (c.estado === 'ATENDIDA' ? 'bg-success' : 'bg-danger');
+
+                    const item = document.createElement('div');
+                    item.className = 'card border rounded-3 p-3 mb-2 shadow-sm';
+                    item.innerHTML = `
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <span class="badge ${badgeClass} text-white mb-1">${c.estado}</span>
+                                <h4 class="h6 fw-bold text-dark mb-0">${c.especialidad_nombre || 'Especialidad'}</h4>
+                                <small class="text-muted">${c.hospital_nombre || 'Hospital'} · Código: <strong>${c.codigo_atencion}</strong></small>
+                            </div>
+                            <span class="text-muted small fw-semibold">${c.fecha_cita} ${c.hora_cita}</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+                            <small class="text-muted"><i class="fa-solid fa-user-doctor me-1"></i> ${c.medico_nombre || 'Médico'}</small>
+                            <div>
+                                ${activa ? `<button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3" onclick="abrirModalCancelar(${c.id})">Cancelar Cita</button>` : ''}
+                                ${c.estado === 'ATENDIDA' ? `<button type="button" class="btn btn-sm btn-outline-success rounded-pill px-3" onclick="verDiagnosticoCita(${c.id})">Ver Diagnóstico</button>` : ''}
+                            </div>
+                        </div>
+                    `;
+                    container.appendChild(item);
+                });
+            } catch (err) {
+                console.error(err);
+                container.innerHTML = '<p class="text-center text-danger py-4">Error al cargar citas.</p>';
+            }
+        }
+
+        function abrirModalCancelar(citaId) {
+            citaIdACancelar = citaId;
+            const modalConfirmacion = new bootstrap.Modal(document.getElementById('modalConfirmacion'));
+            modalConfirmacion.show();
+
+            document.getElementById('btnConfirmarAccion').onclick = async () => {
+                try {
+                    const res = await fetch(`/api/citas/${citaIdACancelar}/cancelar`, {
+                        method: 'PATCH',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${authToken}`
+                        },
+                        body: JSON.stringify({ motivo: 'Cancelada por el paciente desde el portal' })
+                    });
+                    const data = await res.json();
+                    modalConfirmacion.hide();
+                    alert(data.mensaje || 'Cita cancelada exitosamente.');
+                    verMisCitas();
+                } catch (err) {
+                    console.error(err);
+                    alert('Error al cancelar la cita.');
+                }
+            };
+        }
+
+        async function verDiagnosticoCita(citaId) {
+            const modalEl = document.getElementById('modalDiagnostico');
+            const modal = new bootstrap.Modal(modalEl);
+            modal.show();
+
+            const contenedor = document.getElementById('modalDiagContenido');
+            contenedor.innerHTML = '<p class="text-muted py-3"><span class="spinner-border spinner-border-sm me-2"></span> Cargando diagnóstico...</p>';
+
+            try {
+                const res = await fetch(`/api/diagnosticos/cita/${citaId}`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                const data = await res.json();
+
+                if (!res.ok) {
+                    contenedor.innerHTML = `<p class="text-muted py-2">${data.error || 'No hay diagnóstico registrado aún.'}</p>`;
+                    return;
+                }
+
+                let medicamentosHtml = '';
+                if (data.medicamentos && data.medicamentos.length > 0) {
+                    medicamentosHtml = `
+                        <h6 class="fw-bold mt-3">Receta Médica</h6>
+                        <ul class="list-group list-group-flush small">
+                            ${data.medicamentos.map(m => `
+                                <li class="list-group-item px-0">
+                                    <strong>${m.nombre}</strong> (${m.presentacion || ''} ${m.concentracion || ''})<br>
+                                    <span>${m.dosis} · ${m.frecuencia} · durante ${m.dias} días</span>
+                                </li>
+                            `).join('')}
+                        </ul>
+                    `;
+                }
+
+                contenedor.innerHTML = `
+                    <div class="mb-2">
+                        <span class="badge bg-primary me-2">CIE-10: ${data.codigo_cie10}</span>
+                        <strong class="text-dark">${data.descripcion}</strong>
+                    </div>
+                    ${data.indicaciones_generales ? `<p class="text-muted small mt-2"><strong>Indicaciones:</strong> ${data.indicaciones_generales}</p>` : ''}
+                    ${medicamentosHtml}
+                `;
+            } catch (err) {
+                console.error(err);
+                contenedor.innerHTML = '<p class="text-danger py-2">Error al consultar diagnóstico.</p>';
+            }
+        }
+
+        function cerrarSesion() {
+            localStorage.removeItem('minsa_session');
+            localStorage.removeItem('pacienteDni');
+            localStorage.removeItem('pacienteNombre');
+            window.location.replace('index.html');
+        }
+
+        // ==========================================
+        // ACCESIBILIDAD: ALTO CONTRASTE, TEXTO GRANDE
+        // ==========================================
+        function alternarAltoContraste() {
+            document.body.classList.toggle('alto-contraste');
+            document.documentElement.classList.toggle('high-contrast');
+            const activo = document.body.classList.contains('alto-contraste');
+            try {
+                const prefs = JSON.parse(localStorage.getItem('minsa_a11y_preferences') || '{}');
+                prefs.contraste = activo;
+                localStorage.setItem('minsa_a11y_preferences', JSON.stringify(prefs));
+            } catch (e) {}
+        }
+
+        function alternarTextoGrande() {
+            document.body.classList.toggle('texto-ampliado');
+            document.documentElement.classList.toggle('large-text');
+            const activo = document.body.classList.contains('texto-ampliado');
+            try {
+                const prefs = JSON.parse(localStorage.getItem('minsa_a11y_preferences') || '{}');
+                prefs.textoGrande = activo;
+                localStorage.setItem('minsa_a11y_preferences', JSON.stringify(prefs));
+            } catch (e) {}
+        }
+
+        // ==========================================
+        // LECTURA DE VOZ POR SECCIÓN Y GLOBAL
+        // ==========================================
+        let leyendo = false;
+        let botonLecturaActivo = null;
+
+        function restablecerBotonesLectura() {
+            document.querySelectorAll('.btn-escuchar-seccion').forEach(btn => {
+                btn.classList.remove('leyendo-activo');
+                btn.setAttribute('aria-pressed', 'false');
+                btn.innerHTML = '<i class="fa-solid fa-volume-high me-1" aria-hidden="true"></i> Escuchar sección';
+            });
+            botonLecturaActivo = null;
+        }
+
+        function toggleEscucharSeccion(seccionId, boton) {
+            if (!('speechSynthesis' in window)) {
+                alert('Su navegador no soporta la lectura de voz.');
+                return;
+            }
+
+            const synth = window.speechSynthesis;
+
+            // Si este botón ya está leyendo, detener
+            if (boton && boton.classList.contains('leyendo-activo')) {
+                synth.cancel();
+                restablecerBotonesLectura();
+                return;
+            }
+
+            // Cancelar cualquier lectura previa
+            synth.cancel();
+            leyendo = false;
+            const btnGlobal = document.getElementById('btnAudio');
+            if (btnGlobal) btnGlobal.innerHTML = '<i class="fa-solid fa-volume-high me-1" aria-hidden="true"></i> Escuchar página';
+            restablecerBotonesLectura();
+
+            const seccionEl = document.getElementById(seccionId);
+            if (!seccionEl) return;
+
+            // Clonar para extraer únicamente texto limpio
+            const clon = seccionEl.cloneNode(true);
+            clon.querySelectorAll('button, .btn, i, svg, script, style, noscript, [aria-hidden="true"]').forEach(el => el.remove());
+
+            const textoLimpio = clon.innerText.replace(/\s+/g, ' ').trim();
+            if (!textoLimpio) return;
+
+            const utterThis = new SpeechSynthesisUtterance(textoLimpio);
+            utterThis.lang = 'es-PE';
+            utterThis.rate = 0.95;
+
+            utterThis.onstart = () => {
+                if (boton) {
+                    boton.classList.add('leyendo-activo');
+                    boton.setAttribute('aria-pressed', 'true');
+                    boton.innerHTML = '<i class="fa-solid fa-stop me-1" aria-hidden="true"></i> Detener lectura';
+                    botonLecturaActivo = boton;
+                }
+            };
+
+            utterThis.onend = () => {
+                restablecerBotonesLectura();
+            };
+
+            utterThis.onerror = () => {
+                restablecerBotonesLectura();
+            };
+
+            synth.speak(utterThis);
+        }
+
+        function escucharPagina() {
+            if (!('speechSynthesis' in window)) {
+                alert('Su navegador no soporta lectura de voz.');
+                return;
+            }
+
+            const synth = window.speechSynthesis;
+            const btn = document.getElementById('btnAudio');
+
+            if (leyendo) {
+                synth.cancel();
+                leyendo = false;
+                restablecerBotonesLectura();
+                if (btn) btn.innerHTML = '<i class="fa-solid fa-volume-high me-1" aria-hidden="true"></i> Escuchar página';
+                return;
+            }
+
+            // Cancelar cualquier lectura previa
+            synth.cancel();
+            restablecerBotonesLectura();
+
+            const textosALeer = [];
+            document.querySelectorAll('h1, h2, h3, h4, p, label, .card-reserva').forEach(el => {
+                if (el.offsetParent !== null && el.innerText.trim() !== '') {
+                    textosALeer.push(el.innerText.trim());
+                }
+            });
+
+            const textoCompleto = textosALeer.join('. ');
+            const utterThis = new SpeechSynthesisUtterance(textoCompleto);
+            utterThis.lang = 'es-PE';
+            utterThis.rate = 0.95;
+
+            utterThis.onstart = () => {
+                leyendo = true;
+                if (btn) btn.innerHTML = '<i class="fa-solid fa-stop me-1" aria-hidden="true"></i> Detener audio';
+            };
+
+            utterThis.onend = () => {
+                leyendo = false;
+                if (btn) btn.innerHTML = '<i class="fa-solid fa-volume-high me-1" aria-hidden="true"></i> Escuchar página';
+            };
+
+            utterThis.onerror = () => {
+                leyendo = false;
+                if (btn) btn.innerHTML = '<i class="fa-solid fa-volume-high me-1" aria-hidden="true"></i> Escuchar página';
+            };
+
+            synth.speak(utterThis);
+        }
+    </script>
+
 </body>
 </html>

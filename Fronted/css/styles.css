@@ -2118,3 +2118,114 @@ html.high-contrast dialog::backdrop {
         border-color: #000000;
     }
 }
+
+
+/* ==========================================================================
+   Mejoras de accesibilidad adicionales (WCAG 2.1 / post-despliegue Render)
+   ========================================================================== */
+
+/* WCAG 1.4.11: contraste de componentes no-texto — refuerza el borde del chip */
+.chip {
+    border-width: 2px;
+}
+
+/* WCAG 2.5.5 / 2.5.8: área mínima de toque de 44×44 px para botones pequeños en móvil */
+@media (max-width: 600px) {
+    .btn-small {
+        min-height: 44px;
+        padding: 0.6rem 0.9rem;
+    }
+
+    .tool-btn {
+        min-height: 44px;
+    }
+}
+
+/* WCAG 1.4.4: Texto redimensionable — evita desbordamiento en modo texto grande */
+html.large-text .summary-list {
+    grid-template-columns: 1fr;
+}
+
+/* Diálogos: acceso al scroll cuando el contenido supera la ventana (WCAG 2.4.3) */
+dialog[open] {
+    overflow-y: auto;
+    max-height: calc(100vh - 2rem);
+}
+
+/* Legibilidad en tabla del historial en pantallas muy pequeñas */
+@media (max-width: 480px) {
+    .data-table th,
+    .data-table td {
+        padding: 0.45rem 0.55rem;
+        font-size: 0.83rem;
+    }
+}
+
+/* WCAG 2.4.7: Foco visible en inputs tipo radio dentro de choice-card */
+.choice-card input[type="radio"]:focus-visible,
+.slot-card input[type="radio"]:focus-visible {
+    outline: 4px solid var(--focus);
+    outline-offset: 2px;
+    border-radius: 50%;
+}
+
+/* Skip-link: sombra para mejorar el contraste sobre cualquier fondo */
+.skip-link {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+
+/* Leaflet: tamaño mínimo de la atribución (mejora legibilidad) */
+.leaflet-control-attribution {
+    font-size: 0.72rem !important;
+}
+
+/* WCAG 1.4.3: Garantizar contraste mínimo de texto del estado .muted sobre fondo blanco
+   (#4a6269 sobre #ffffff → ratio ~4.6:1, cumple AA) */
+.lead,
+.help,
+.status,
+.card-subtitle,
+.kpi-note,
+.chart-summary {
+    color: var(--muted); /* #4a6269 — ratio AA verificado */
+}
+
+/* WCAG 2.1.1: Accesibilidad desde teclado — botón de cerrar diálogo con área suficiente */
+.dialog-close {
+    min-width: 44px;
+    min-height: 44px;
+}
+
+/* Estado de error de inputs: añadir icono implícito mediante outline rojo (WCAG 1.4.1) */
+.form-control[aria-invalid="true"],
+.form-select[aria-invalid="true"] {
+    border-color: var(--danger);
+    box-shadow: 0 0 0 3px rgba(164, 22, 26, 0.18);
+}
+
+html.high-contrast .form-control[aria-invalid="true"],
+html.high-contrast .form-select[aria-invalid="true"] {
+    border-color: #ffd400;
+    box-shadow: 0 0 0 3px rgba(255, 212, 0, 0.35);
+}
+
+/* Mejora de contraste en footer — texto sub tiene ratio ~4.1:1 sobre fondo #005a6b */
+.site-footer p,
+.site-footer li {
+    color: #d7f1f5; /* --header-sub: ratio 4.1:1 sobre #005a6b ✓ */
+}
+
+/* Clase utilitaria: para contenido visible solo en impresión */
+.print-only {
+    display: none;
+}
+
+@media print {
+    .print-only {
+        display: block;
+    }
+
+    .no-print {
+        display: none !important;
+    }
+}

@@ -247,7 +247,9 @@ export function speakText(text, triggerButton = null) {
  */
 function resetAllReadButtons() {
     document.querySelectorAll('.btn-read-section').forEach(btn => {
-        btn.innerHTML = '<span aria-hidden="true">🔊</span> Escuchar sección';
+        // Restaurar el aria-label original desde data-label (si existe) o el texto por defecto
+        const textoOriginal = btn.dataset.labelOriginal || 'Escuchar sección';
+        btn.innerHTML = `<span aria-hidden="true">🔊</span> ${textoOriginal}`;
         btn.setAttribute('aria-pressed', 'false');
     });
 
@@ -335,8 +337,19 @@ export function initAccessibility() {
 
     // Leer secciones específicas
     document.querySelectorAll('.btn-read-section').forEach((boton) => {
+        // Guardar el texto visible original para poder restaurarlo correctamente
+        const textoVisible = (boton.textContent || '').trim();
+        if (textoVisible && !boton.dataset.labelOriginal) {
+            boton.dataset.labelOriginal = textoVisible;
+        }
+
         const nuevoBoton = reemplazarBotonSinListeners(boton);
         if (!nuevoBoton) return;
+
+        // Preservar el label en el nodo clonado
+        if (!nuevoBoton.dataset.labelOriginal && textoVisible) {
+            nuevoBoton.dataset.labelOriginal = textoVisible;
+        }
 
         nuevoBoton.setAttribute('aria-pressed', 'false');
         nuevoBoton.addEventListener('click', () => {

@@ -1,171 +1,725 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Sistema Inclusivo de Citas Médicas del MINSA: reserve, reprograme y consulte sus citas en hospitales de Lima Metropolitana con accesibilidad universal.">
-    <meta name="theme-color" content="#005a6b">
-    <title>Inicio | Sistema Inclusivo de Citas Médicas - MINSA</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="css/styles.css">
+    <title>Sistema Inclusivo de Citas Médicas - MINSA</title>
+
+    <!-- Bootstrap Icons & FontAwesome -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- CSS del diseño exacto de Render -->
+    <link rel="stylesheet" href="css/index.css">
+
     <script>
         try {
             var prefs = JSON.parse(localStorage.getItem('minsa_a11y_preferences') || '{}');
             if (prefs.contraste) { document.documentElement.classList.add('high-contrast'); }
-            if (prefs.textoGrande) { document.documentElement.classList.add('large-text', 'texto-grande'); }
+            if (prefs.textoGrande) { document.documentElement.classList.add('large-text'); }
         } catch (error) {}
     </script>
 </head>
-<body>
-    <a class="skip-link" href="#contenido">Saltar al contenido principal</a>
-    <div id="aria-alertas" class="sr-only" aria-live="assertive" aria-atomic="true" role="alert"></div>
-    <div id="aria-estado" class="sr-only" aria-live="polite" aria-atomic="true" role="status"></div>
 
-    <header class="site-header">
-        <div class="container header-inner">
-            <a class="brand" href="index.html" aria-label="MINSA, ir al inicio">
-                <span class="brand-mark" aria-hidden="true">✚</span>
-                <span>
-                    <span class="brand-title">MINSA</span>
-                    <span class="brand-subtitle">Sistema Inclusivo de Citas Médicas</span>
-                </span>
-            </a>
-            <div class="header-actions" role="group" aria-label="Herramientas de accesibilidad">
-                <button type="button" id="btn-contrast" class="tool-btn" aria-pressed="false">
-                    <span aria-hidden="true">◐</span> Alto contraste
-                </button>
-                <button type="button" id="btn-text" class="tool-btn" aria-pressed="false">
-                    <span aria-hidden="true">A+</span> Aumentar texto
-                </button>
+<body>
+    <a class="skip-link" href="#main-content">Saltar al contenido principal</a>
+
+    <!-- Header MINSA con barra institucional y accesibilidad -->
+    <header class="minsa-bar d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-3">
+            <div class="logo-m" aria-hidden="true">M</div>
+            <div>
+                <h1 class="h6 mb-0 fw-bold text-white">MINSA</h1>
+                <p class="mb-0 text-white-50 small" style="font-size: 0.75rem;">Sistema Inclusivo de Citas Médicas</p>
             </div>
         </div>
-        <nav class="main-nav" aria-label="Navegación principal">
-            <div class="container">
-                <ul>
-                    <li><a href="index.html" aria-current="page">Inicio</a></li>
-                    <li><a href="login.html">Iniciar sesión</a></li>
-                </ul>
-            </div>
-        </nav>
+        <div class="d-flex align-items-center gap-2 flex-wrap" role="toolbar" aria-label="Herramientas de accesibilidad">
+            <button type="button" class="btn btn-sm btn-outline-light rounded-pill px-3" onclick="toggleAltoContraste()" aria-label="Activar o desactivar modo de alto contraste">
+                <i class="fa-solid fa-circle-half-stroke me-1" aria-hidden="true"></i> Alto contraste
+            </button>
+            <button type="button" class="btn btn-sm bg-warning text-dark fw-bold rounded-pill px-3" onclick="toggleTextoGrande()" aria-label="Aumentar o restablecer tamaño de texto">
+                <i class="fa-solid fa-a me-1" aria-hidden="true"></i> Texto grande
+            </button>
+            <button type="button" id="btnAudio" class="btn btn-sm btn-light rounded-pill px-3 fw-semibold" onclick="escucharPagina()" aria-label="Escuchar el contenido de la página en voz alta">
+                <i class="fa-solid fa-volume-high me-1" aria-hidden="true"></i> Escuchar página
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-light rounded-pill px-3 fw-semibold" data-bs-toggle="modal" data-bs-target="#modalAdminLogin" aria-label="Abrir ventana de acceso para Administradores">
+                <i class="fa-solid fa-user-shield me-1" aria-hidden="true"></i> Panel Admin
+            </button>
+        </div>
     </header>
 
-    <main id="contenido" tabindex="-1">
-        <section class="hero" aria-labelledby="titulo-principal">
-            <div class="container hero-grid hero-grid--single">
-                <div class="readable-section" id="hero-section-read">
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
-                        <p class="eyebrow" style="margin: 0;">MINSA · Accesibilidad universal</p>
-                        <button type="button" class="btn-read-section tool-btn" aria-label="Escuchar sección principal" data-target="hero-section-read">
-                            <span aria-hidden="true">🔊</span> Escuchar sección
-                        </button>
-                    </div>
-                    <h1 id="titulo-principal">Su cita médica, sin barreras y sin filas</h1>
-                    <p class="lead">
-                        Reserve, reprograme, cancele y consulte sus citas en los hospitales de Lima
-                        Metropolitana desde cualquier dispositivo. El sistema está diseñado para
-                        personas con baja visión, adultos mayores y usuarios de lectores de pantalla.
-                    </p>
-                    <div class="hero-actions">
-                        <a class="btn btn-primary" href="login.html">Reservar una cita</a>
-                    </div>
-                </div>
-            </div>
-        </section>
+    <!-- Contenido Principal -->
+    <main id="main-content" class="container my-auto py-5" style="max-width: 1100px;" tabindex="-1">
+        <div class="row align-items-center g-5">
 
-        <section class="section readable-section" id="roles-section-read" aria-labelledby="titulo-roles">
-            <div class="container">
-                <div class="section-head" style="position: relative;">
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                        <div>
-                            <p class="eyebrow">Acceso por rol</p>
-                            <h2 id="titulo-roles">¿Cómo desea ingresar?</h2>
-                        </div>
-                        <button type="button" class="btn-read-section tool-btn" aria-label="Escuchar sección de roles" data-target="roles-section-read">
-                            <span aria-hidden="true">🔊</span> Escuchar sección
-                        </button>
-                    </div>
-                    <p class="lead">Cada portal muestra únicamente las funciones autorizadas para su rol.</p>
+            <!-- Columna Izquierda: Información -->
+            <div class="col-lg-6" id="seccion-hero">
+                <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                    <span class="badge-portal text-uppercase">PORTAL DEL PACIENTE</span>
+                    <button type="button" class="btn btn-sm btn-outline-secondary btn-escuchar-seccion"
+                        onclick="toggleEscucharSeccion('seccion-hero', this)"
+                        aria-label="Escuchar sección de bienvenida y características del portal" aria-pressed="false">
+                        <i class="fa-solid fa-volume-high me-1" aria-hidden="true"></i> Escuchar sección
+                    </button>
                 </div>
-                <div class="grid grid-2">
-                    <article class="feature-card" aria-labelledby="rol-paciente">
-                        <div class="feature-icon" aria-hidden="true">👤</div>
-                        <h3 id="rol-paciente">Paciente</h3>
-                        <p>Reserve en cuatro pasos, revise su historial, reprograme o cancele sus citas.</p>
-                        <a class="btn btn-secondary btn-small" href="login.html?rol=PACIENTE">Ingresar como paciente</a>
-                    </article>
-                    <article class="feature-card" aria-labelledby="rol-admin">
-                        <div class="feature-icon" aria-hidden="true">📊</div>
-                        <h3 id="rol-admin">Administrador MINSA</h3>
-                        <p>Analice indicadores en tiempo real, gestione citas y administre cuentas de personal.</p>
-                        <a class="btn btn-secondary btn-small" href="login.html?rol=ADMIN">Ingresar como administrador</a>
-                    </article>
-                </div>
-            </div>
-        </section>
+                <h2 class="display-6 fw-bold text-dark mb-3" style="line-height: 1.2;">
+                    Reserve su Cita Médica Accesible
+                </h2>
+                <p class="text-secondary mb-4" style="font-size: 0.95rem;">
+                    Acceda a los servicios de salud pública del MINSA en Lima Metropolitana con una interfaz adaptada a
+                    sus necesidades.
+                </p>
 
-        <section class="section readable-section" id="funciones-section-read" aria-labelledby="titulo-funciones">
-            <div class="container">
-                <div class="section-head">
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                        <div>
-                            <p class="eyebrow">Flujo asistencial</p>
-                            <h2 id="titulo-funciones">Todo el proceso de atención en un solo lugar</h2>
-                        </div>
-                        <button type="button" class="btn-read-section tool-btn" aria-label="Escuchar sección de flujo asistencial" data-target="funciones-section-read">
-                            <span aria-hidden="true">🔊</span> Escuchar sección
-                        </button>
+                <div class="d-flex flex-column gap-3 text-secondary" style="font-size: 0.9rem;">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="fa-solid fa-circle-check text-success fs-5" aria-hidden="true"></i>
+                        <span>Selección sencilla de hospitales y especialidades de atención.</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="fa-solid fa-circle-check text-success fs-5" aria-hidden="true"></i>
+                        <span>Consulta inmediata de turnos y cupos libres en tiempo real.</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="fa-solid fa-circle-check text-success fs-5" aria-hidden="true"></i>
+                        <span>Confirmación de cita con recordatorio por código de atención.</span>
                     </div>
                 </div>
-                <div class="grid grid-4">
-                    <article class="feature-card">
-                        <div class="feature-icon" aria-hidden="true">🏥</div>
-                        <h3>Elija su hospital</h3>
-                        <p>Consulte la red asistencial activa y las especialidades habilitadas por establecimiento.</p>
-                    </article>
-                    <article class="feature-card">
-                        <div class="feature-icon" aria-hidden="true">📅</div>
-                        <h3>Reserve su horario</h3>
-                        <p>Seleccione fecha y hora con bloqueo inmediato que evita la doble reserva del cupo.</p>
-                    </article>
-                    <article class="feature-card">
-                        <div class="feature-icon" aria-hidden="true">🔁</div>
-                        <h3>Reprograme o cancele</h3>
-                        <p>Gestione sus citas activas y libere el cupo para otros pacientes cuando lo necesite.</p>
-                    </article>
-                    <article class="feature-card">
-                        <div class="feature-icon" aria-hidden="true">📈</div>
-                        <h3>Indicadores MINSA</h3>
-                        <p>El dashboard gerencial muestra citas programadas, atendidas, canceladas e inasistencias.</p>
-                    </article>
+            </div>
+
+            <!-- Columna Derecha: Tarjeta con Pestañas -->
+            <div class="col-lg-6">
+                <div class="card card-login p-4 p-md-5" id="seccion-login">
+                    <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                        <span class="text-muted small fw-bold text-uppercase" style="letter-spacing: 0.5px;">Acceso al Sistema</span>
+                        <button type="button" class="btn btn-sm btn-outline-secondary btn-escuchar-seccion"
+                            onclick="toggleEscucharSeccion('seccion-login', this)"
+                            aria-label="Escuchar formulario de ingreso y registro de paciente" aria-pressed="false">
+                            <i class="fa-solid fa-volume-high me-1" aria-hidden="true"></i> Escuchar sección
+                        </button>
+                    </div>
+
+                    <!-- Pestañas de Navegación -->
+                    <div class="d-flex gap-4 mb-4 border-bottom pb-2" role="tablist" aria-label="Modo de acceso">
+                        <button type="button" id="tabLogin" class="tab-custom active" onclick="cambiarTab('login')" role="tab" aria-selected="true" aria-controls="formLogin">
+                            <i class="fa-solid fa-right-to-bracket me-1" aria-hidden="true"></i> Iniciar Sesión
+                        </button>
+                        <button type="button" id="tabRegistro" class="tab-custom text-muted" onclick="cambiarTab('registro')" role="tab" aria-selected="false" aria-controls="formRegistro">
+                            <i class="fa-solid fa-user-plus me-1" aria-hidden="true"></i> Registrarse
+                        </button>
+                    </div>
+
+                    <!-- FORMULARIO DE INICIO DE SESIÓN -->
+                    <div id="formLogin" role="tabpanel" aria-labelledby="tabLogin">
+                        <div class="mb-3">
+                            <h3 class="h5 fw-bold text-dark mb-1">Ingreso de Paciente</h3>
+                            <p class="text-muted small">Ingrese su DNI y clave para gestionar sus citas reservadas.</p>
+                        </div>
+
+                        <form onsubmit="iniciarSesionBD(event)" autocomplete="on" novalidate>
+                            <div class="mb-3">
+                                <label for="loginDni" class="form-label fw-bold small text-secondary">Número de DNI</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light text-muted" aria-hidden="true">
+                                        <i class="fa-solid fa-id-card"></i>
+                                    </span>
+                                    <input type="text" id="loginDni" name="username" class="form-control" placeholder="Ej. 74859612"
+                                        maxlength="8" inputmode="numeric" autocomplete="username" required aria-describedby="ayudaLoginDni">
+                                </div>
+                                <div id="ayudaLoginDni" class="form-text text-muted" style="font-size: 0.72rem;">
+                                    Ingrese sus 8 dígitos numéricos (o su correo/CMP si es personal).
+                                </div>
+                            </div>
+
+                            <div class="mb-4">
+                                <label for="loginPassword" class="form-label fw-bold small text-secondary">Contraseña o Clave PIN</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light text-muted" aria-hidden="true">
+                                        <i class="fa-solid fa-lock"></i>
+                                    </span>
+                                    <input type="password" id="loginPassword" name="current-password" class="form-control"
+                                        placeholder="••••••••" autocomplete="current-password" required>
+                                </div>
+                            </div>
+
+                            <button type="submit" id="btnLoginSubmit" class="btn btn-primary w-100 shadow-sm fw-bold py-2"
+                                style="background-color: #0056b3; border: none;">
+                                <i class="fa-solid fa-right-to-bracket me-2" aria-hidden="true"></i> Iniciar Sesión de Paciente
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- FORMULARIO DE REGISTRO -->
+                    <div id="formRegistro" class="d-none" role="tabpanel" aria-labelledby="tabRegistro">
+                        <div class="mb-3">
+                            <h3 class="h5 fw-bold text-dark mb-1">Registro de Nuevo Paciente</h3>
+                            <p class="text-muted small">Cree su cuenta vinculada a su DNI y correo.</p>
+                        </div>
+
+                        <form onsubmit="registrarUsuarioBD(event)" autocomplete="on" novalidate>
+                            <div class="mb-3">
+                                <label for="regNombres" class="form-label fw-bold small text-secondary">Nombres y Apellidos</label>
+                                <input type="text" id="regNombres" name="name" class="form-control"
+                                    placeholder="Ej. Paola Lucia Olivos" autocomplete="name" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="regDni" class="form-label fw-bold small text-secondary">Número de DNI</label>
+                                <input type="text" id="regDni" name="dni" class="form-control" placeholder="Ej. 75525096"
+                                    maxlength="8" inputmode="numeric" required aria-describedby="ayudaRegDni">
+                                <div id="ayudaRegDni" class="form-text text-muted" style="font-size: 0.72rem;">Exactamente 8 dígitos numéricos.</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="regCorreo" class="form-label fw-bold small text-secondary">Correo Electrónico (opcional)</label>
+                                <input type="email" id="regCorreo" name="email" class="form-control"
+                                    placeholder="Ej. correo@minsa.gob.pe" autocomplete="email">
+                            </div>
+                            <div class="mb-3">
+                                <label for="regTelefono" class="form-label fw-bold small text-secondary">Teléfono Celular (opcional)</label>
+                                <input type="tel" id="regTelefono" name="tel" class="form-control"
+                                    placeholder="Ej. 987654321" autocomplete="tel" inputmode="tel">
+                            </div>
+                            <div class="mb-4">
+                                <label for="regPassword" class="form-label fw-bold small text-secondary">Crear Contraseña</label>
+                                <input type="password" id="regPassword" name="new-password" class="form-control" placeholder="••••••••"
+                                    minlength="4" autocomplete="new-password" required>
+                            </div>
+                            <button type="submit" id="btnRegSubmit" class="btn btn-success w-100 fw-bold py-2 shadow-sm"
+                                style="background-color: #059669; border: none;">
+                                <i class="fa-solid fa-user-check me-2" aria-hidden="true"></i> Registrarse
+                            </button>
+                        </form>
+                    </div>
+
                 </div>
             </div>
-        </section>
+
+        </div>
     </main>
 
-    <footer class="site-footer">
-        <div class="container footer-grid">
-            <div>
-                <h2>MINSA</h2>
-                <p>Sistema Inclusivo de Citas Médicas para la red asistencial de Lima Metropolitana.</p>
-            </div>
-            <div>
-                <h2>Accesos</h2>
-                <ul>
-                    <li><a href="login.html">Iniciar sesión</a></li>
-                    <li><a href="login.html#registro">Registro de paciente</a></li>
-                </ul>
-            </div>
-            <div>
-                <h2>Accesibilidad</h2>
-                <p>WCAG 2.1 AA/AAA · Navegación por teclado · Lectura en voz alta segmentada · Contraste reforzado.</p>
+    <!-- Modal de Acceso para Administrador -->
+    <div class="modal fade" id="modalAdminLogin" tabindex="-1" aria-labelledby="modalAdminLoginLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content rounded-4 border-0 shadow-lg">
+                <div class="modal-header text-white" style="background-color: #002B40;">
+                    <h5 class="modal-title fw-bold" id="modalAdminLoginLabel">
+                        <i class="fa-solid fa-user-shield me-2" aria-hidden="true"></i>Acceso Institucional / Administrador
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar ventana"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <p class="text-muted small mb-4">Ingrese sus credenciales autorizadas para gestionar el sistema MINSA.</p>
+                    <form onsubmit="validarLoginAdmin(event)">
+                        <div class="mb-3">
+                            <label for="txtAdminUser" class="form-label fw-bold small text-secondary">Usuario (Correo institucional, DNI o CMP)</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light" aria-hidden="true"><i class="fa-solid fa-user"></i></span>
+                                <input type="text" id="txtAdminUser" class="form-control" placeholder="Ej: admin@minsa.gob.pe" required>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <label for="txtAdminPass" class="form-label fw-bold small text-secondary">Contraseña</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light" aria-hidden="true"><i class="fa-solid fa-lock"></i></span>
+                                <input type="password" id="txtAdminPass" class="form-control" placeholder="****" required>
+                            </div>
+                        </div>
+                        <button type="submit" id="btnAdminSubmit"
+                            class="btn btn-primary w-100 fw-bold py-2 shadow-sm"
+                            style="background-color: #0056b3; border: none;">
+                            Ingresar al Panel <i class="fa-solid fa-arrow-right ms-2" aria-hidden="true"></i>
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
+    </div>
+
+    <!-- Modal de Éxito de Registro -->
+    <div class="modal fade" id="modalRegistroExitoso" tabindex="-1" aria-labelledby="modalRegistroExitosoLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow rounded-4 p-2">
+                <div class="modal-body text-center py-4">
+                    <div class="mb-3 text-success" aria-hidden="true">
+                        <i class="bi bi-check-circle-fill display-3"></i>
+                    </div>
+                    <h4 class="fw-bold text-dark mb-2" id="modalRegistroExitosoLabel">¡Registro Exitoso!</h4>
+                    <p class="text-muted mb-4">Su cuenta ha sido creada correctamente en el sistema MINSA. Ya puede iniciar sesión.</p>
+                    <button type="button" class="btn btn-success px-4 rounded-pill fw-semibold" data-bs-dismiss="modal" id="btnIrLogin">
+                        Iniciar Sesión
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Alerta General -->
+    <div class="modal fade" id="modalAlertaSistema" tabindex="-1" aria-labelledby="tituloAlertaModal" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow rounded-4 p-2">
+                <div class="modal-body text-center py-4">
+                    <div class="mb-3 text-danger" id="iconoAlertaModal" aria-hidden="true">
+                        <i class="bi bi-exclamation-triangle-fill display-3"></i>
+                    </div>
+                    <h4 class="fw-bold text-dark mb-2" id="tituloAlertaModal">¡Atención!</h4>
+                    <p class="text-muted mb-4" id="mensajeAlertaModal">Ocurrió un error en el proceso.</p>
+                    <button type="button" class="btn btn-danger px-4 rounded-pill fw-semibold" data-bs-dismiss="modal">Entendido</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sección: Todo el proceso de atención en un solo lugar -->
+    <section class="container my-5" id="seccion-proceso" aria-labelledby="titulo-proceso">
+        <div class="d-flex justify-content-center align-items-center gap-3 mb-5 flex-wrap">
+            <h2 id="titulo-proceso" class="fw-bold text-dark mb-0">Todo el proceso de atención en un solo lugar</h2>
+            <button type="button" class="btn btn-sm btn-outline-primary btn-escuchar-seccion"
+                onclick="toggleEscucharSeccion('seccion-proceso', this)"
+                aria-label="Escuchar bloque completo de proceso de atención" aria-pressed="false">
+                <i class="fa-solid fa-volume-high me-1" aria-hidden="true"></i> Escuchar sección
+            </button>
+        </div>
+
+        <div class="row g-4">
+            <!-- Tarjeta 1: Elija su hospital -->
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm rounded-4 p-4 h-100 bg-white" id="card-proceso-1">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="d-inline-flex align-items-center justify-content-center bg-primary bg-opacity-10 text-primary rounded-4 fs-4"
+                            style="width: 55px; height: 55px;" aria-hidden="true">
+                            <i class="bi bi-hospital"></i>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-secondary btn-escuchar-seccion"
+                            onclick="toggleEscucharSeccion('card-proceso-1', this)"
+                            aria-label="Escuchar tarjeta: Elija su hospital" aria-pressed="false">
+                            <i class="fa-solid fa-volume-high me-1" aria-hidden="true"></i> Escuchar sección
+                        </button>
+                    </div>
+                    <h3 class="h4 fw-bold text-dark mb-2">Elija su hospital</h3>
+                    <p class="text-muted mb-0">
+                        Consulte la red asistencial activa y las especialidades habilitadas por establecimiento.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Tarjeta 2: Reserve su horario -->
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm rounded-4 p-4 h-100 bg-white" id="card-proceso-2">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="d-inline-flex align-items-center justify-content-center bg-primary bg-opacity-10 text-primary rounded-4 fs-4"
+                            style="width: 55px; height: 55px;" aria-hidden="true">
+                            <i class="bi bi-calendar-check"></i>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-secondary btn-escuchar-seccion"
+                            onclick="toggleEscucharSeccion('card-proceso-2', this)"
+                            aria-label="Escuchar tarjeta: Reserve su horario" aria-pressed="false">
+                            <i class="fa-solid fa-volume-high me-1" aria-hidden="true"></i> Escuchar sección
+                        </button>
+                    </div>
+                    <h3 class="h4 fw-bold text-dark mb-2">Reserve su horario</h3>
+                    <p class="text-muted mb-0">
+                        Seleccione fecha y hora con bloqueo inmediato que evita la doble reserva del cupo.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Tarjeta 3: Reprograme o cancele -->
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm rounded-4 p-4 h-100 bg-white" id="card-proceso-3">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="d-inline-flex align-items-center justify-content-center bg-primary bg-opacity-10 text-primary rounded-4 fs-4"
+                            style="width: 55px; height: 55px;" aria-hidden="true">
+                            <i class="bi bi-arrow-repeat"></i>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-secondary btn-escuchar-seccion"
+                            onclick="toggleEscucharSeccion('card-proceso-3', this)"
+                            aria-label="Escuchar tarjeta: Reprograme o cancele" aria-pressed="false">
+                            <i class="fa-solid fa-volume-high me-1" aria-hidden="true"></i> Escuchar sección
+                        </button>
+                    </div>
+                    <h3 class="h4 fw-bold text-dark mb-2">Reprograme o cancele</h3>
+                    <p class="text-muted mb-0">
+                        Gestione sus citas activas y libere el cupo para otros pacientes cuando lo necesite.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="text-center py-3 text-muted small border-top bg-white" role="contentinfo">
+        <p class="mb-0">© 2026 Ministerio de Salud del Perú - Todos los derechos reservados.</p>
     </footer>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script type="module" src="js/shared/accessibility.js"></script>
+    <!-- Bootstrap Bundle JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Scripts de lógica conectados a nuestro Backend local -->
+    <script>
+        // Si ya hay sesión activa, redirigir automáticamente a su portal
+        (function verificarSesionPrevia() {
+            try {
+                const sesionRaw = localStorage.getItem('minsa_session');
+                if (sesionRaw) {
+                    const sesion = JSON.parse(sesionRaw);
+                    if (sesion && sesion.token && sesion.usuario && sesion.usuario.rol) {
+                        const rol = sesion.usuario.rol;
+                        if (rol === 'ADMIN') {
+                            window.location.replace('dashboard.html');
+                        } else if (rol === 'EMPLEADO') {
+                            window.location.replace('empleado.html');
+                        } else if (rol === 'PACIENTE') {
+                            window.location.replace('Minsa.html');
+                        }
+                    }
+                }
+            } catch (e) {}
+        })();
+
+        function cambiarTab(tipo) {
+            const tabLogin = document.getElementById('tabLogin');
+            const tabRegistro = document.getElementById('tabRegistro');
+            const formLogin = document.getElementById('formLogin');
+            const formRegistro = document.getElementById('formRegistro');
+
+            if (tipo === 'login') {
+                tabLogin.className = 'tab-custom active';
+                tabLogin.setAttribute('aria-selected', 'true');
+                tabRegistro.className = 'tab-custom text-muted';
+                tabRegistro.setAttribute('aria-selected', 'false');
+                formLogin.classList.remove('d-none');
+                formRegistro.classList.add('d-none');
+            } else {
+                tabRegistro.className = 'tab-custom active';
+                tabRegistro.setAttribute('aria-selected', 'true');
+                tabLogin.className = 'tab-custom text-muted';
+                tabLogin.setAttribute('aria-selected', 'false');
+                formRegistro.classList.remove('d-none');
+                formLogin.classList.add('d-none');
+            }
+        }
+
+        async function iniciarSesionBD(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnLoginSubmit');
+            const dni = document.getElementById('loginDni').value.trim();
+            const password = document.getElementById('loginPassword').value;
+
+            if (!dni || !password) {
+                mostrarAlertaModal("Campos Incompletos", "Por favor ingrese su número de DNI y contraseña.", true);
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span> Iniciando sesión...';
+
+            try {
+                const res = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ identificador: dni, password: password })
+                });
+
+                const data = await res.json();
+
+                if (res.ok && data.token) {
+                    localStorage.setItem('minsa_session', JSON.stringify({ token: data.token, usuario: data.usuario }));
+                    localStorage.setItem('pacienteNombre', data.usuario.nombres);
+                    localStorage.setItem('pacienteDni', data.usuario.dni);
+                    
+                    const rol = data.usuario.rol;
+                    if (rol === 'ADMIN') {
+                        window.location.href = 'dashboard.html';
+                    } else if (rol === 'EMPLEADO') {
+                        window.location.href = 'empleado.html';
+                    } else {
+                        window.location.href = 'Minsa.html';
+                    }
+                } else {
+                    mostrarAlertaModal("Acceso Denegado", data.error || data.mensaje || "Credenciales incorrectas.", true);
+                }
+            } catch (err) {
+                console.error(err);
+                mostrarAlertaModal("Error de Conexión", "No se pudo conectar con el servidor backend.", true);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-right-to-bracket me-2" aria-hidden="true"></i> Iniciar Sesión de Paciente';
+            }
+        }
+
+        async function registrarUsuarioBD(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnRegSubmit');
+            const nombres = document.getElementById('regNombres').value.trim();
+            const dni = document.getElementById('regDni').value.trim();
+            const correo = document.getElementById('regCorreo').value.trim();
+            const telefono = document.getElementById('regTelefono').value.trim() || '999999999';
+            const password = document.getElementById('regPassword').value;
+
+            if (!/^\d{8}$/.test(dni)) {
+                mostrarAlertaModal("DNI Inválido", "El DNI debe contener exactamente 8 dígitos numéricos.", true);
+                return;
+            }
+
+            if (!nombres || nombres.length < 3) {
+                mostrarAlertaModal("Nombre Inválido", "Ingrese sus nombres y apellidos completos.", true);
+                return;
+            }
+
+            if (!password || password.length < 4) {
+                mostrarAlertaModal("Contraseña Corta", "La contraseña debe tener al menos 4 caracteres.", true);
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span> Registrando...';
+
+            try {
+                const res = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        dni: dni,
+                        nombres: nombres,
+                        telefono: telefono,
+                        email: correo || undefined,
+                        password: password
+                    })
+                });
+
+                const data = await res.json();
+
+                if (res.ok && data.token) {
+                    const myModal = new bootstrap.Modal(document.getElementById('modalRegistroExitoso'));
+                    myModal.show();
+
+                    document.getElementById('btnIrLogin').onclick = () => {
+                        cambiarTab('login');
+                        document.getElementById('loginDni').value = dni;
+                        document.getElementById('loginPassword').value = password;
+                    };
+                } else {
+                    mostrarAlertaModal("Error en Registro", data.error || data.mensaje || "No se pudo registrar.", true);
+                }
+            } catch (err) {
+                console.error(err);
+                mostrarAlertaModal("Error de Conexión", "No se pudo conectar con el servidor backend.", true);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-user-check me-2" aria-hidden="true"></i> Registrarse';
+            }
+        }
+
+        async function validarLoginAdmin(e) {
+            if (e) e.preventDefault();
+            const btn = document.getElementById('btnAdminSubmit');
+            const user = document.getElementById('txtAdminUser').value.trim();
+            const pass = document.getElementById('txtAdminPass').value;
+
+            if (!user || !pass) {
+                alert('Ingrese su usuario y contraseña.');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span> Validando...';
+
+            try {
+                const res = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ identificador: user, password: pass })
+                });
+
+                const data = await res.json();
+
+                if (res.ok && data.token) {
+                    localStorage.setItem('minsa_session', JSON.stringify({ token: data.token, usuario: data.usuario }));
+                    if (data.usuario.rol === 'ADMIN') {
+                        window.location.href = 'dashboard.html';
+                    } else if (data.usuario.rol === 'EMPLEADO') {
+                        window.location.href = 'empleado.html';
+                    } else {
+                        window.location.href = 'Minsa.html';
+                    }
+                } else {
+                    alert(data.error || 'Credenciales incorrectas. Acceso denegado.');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Error al conectar con el servidor.');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'Ingresar al Panel <i class="fa-solid fa-arrow-right ms-2" aria-hidden="true"></i>';
+            }
+        }
+
+        function mostrarAlertaModal(titulo, mensaje, esError = true) {
+            document.getElementById('tituloAlertaModal').innerText = titulo;
+            document.getElementById('mensajeAlertaModal').innerText = mensaje;
+
+            const icono = document.getElementById('iconoAlertaModal');
+            if (esError) {
+                icono.className = "mb-3 text-danger";
+                icono.innerHTML = '<i class="bi bi-exclamation-triangle-fill display-3"></i>';
+            } else {
+                icono.className = "mb-3 text-success";
+                icono.innerHTML = '<i class="bi bi-check-circle-fill display-3"></i>';
+            }
+
+            const modalAlerta = new bootstrap.Modal(document.getElementById('modalAlertaSistema'));
+            modalAlerta.show();
+        }
+
+        // ==========================================
+        // ACCESIBILIDAD: ALTO CONTRASTE, TEXTO GRANDE, VOZ
+        // ==========================================
+        function toggleAltoContraste() {
+            document.body.classList.toggle('high-contrast');
+            document.documentElement.classList.toggle('high-contrast');
+            const activo = document.body.classList.contains('high-contrast');
+            try {
+                const prefs = JSON.parse(localStorage.getItem('minsa_a11y_preferences') || '{}');
+                prefs.contraste = activo;
+                localStorage.setItem('minsa_a11y_preferences', JSON.stringify(prefs));
+            } catch (e) {}
+        }
+
+        let textoGrandeActivo = false;
+        function toggleTextoGrande() {
+            document.body.classList.toggle('large-text');
+            document.documentElement.classList.toggle('large-text');
+            textoGrandeActivo = document.body.classList.contains('large-text');
+            try {
+                const prefs = JSON.parse(localStorage.getItem('minsa_a11y_preferences') || '{}');
+                prefs.textoGrande = textoGrandeActivo;
+                localStorage.setItem('minsa_a11y_preferences', JSON.stringify(prefs));
+            } catch (e) {}
+        }
+
+        // ==========================================
+        // LECTURA ACCESIBLE POR VOZ (GLOBAL Y POR SECCIÓN)
+        // ==========================================
+        let leyendo = false;
+        let botonLecturaActivo = null;
+
+        function restablecerBotonesLectura() {
+            document.querySelectorAll('.btn-escuchar-seccion').forEach(btn => {
+                btn.classList.remove('leyendo-activo');
+                btn.setAttribute('aria-pressed', 'false');
+                btn.innerHTML = '<i class="fa-solid fa-volume-high me-1" aria-hidden="true"></i> Escuchar sección';
+            });
+            botonLecturaActivo = null;
+        }
+
+        function toggleEscucharSeccion(seccionId, boton) {
+            if (!('speechSynthesis' in window)) {
+                alert('Lo sentimos, su navegador no soporta la lectura de voz.');
+                return;
+            }
+
+            const synth = window.speechSynthesis;
+
+            // Si se hace clic en el botón que ya está leyendo, detener
+            if (boton && boton.classList.contains('leyendo-activo')) {
+                synth.cancel();
+                restablecerBotonesLectura();
+                return;
+            }
+
+            // Cancelar cualquier lectura previa en curso
+            synth.cancel();
+            leyendo = false;
+            const btnGlobal = document.getElementById('btnAudio');
+            if (btnGlobal) btnGlobal.innerHTML = '<i class="fa-solid fa-volume-high me-1" aria-hidden="true"></i> Escuchar página';
+            restablecerBotonesLectura();
+
+            const seccionEl = document.getElementById(seccionId);
+            if (!seccionEl) return;
+
+            // Clonar para extraer únicamente texto limpio sin alterar el DOM real
+            const clon = seccionEl.cloneNode(true);
+            clon.querySelectorAll('button, .btn, i, svg, script, style, noscript, [aria-hidden="true"]').forEach(el => el.remove());
+
+            const textoLimpio = clon.innerText.replace(/\s+/g, ' ').trim();
+            if (!textoLimpio) return;
+
+            const utterThis = new SpeechSynthesisUtterance(textoLimpio);
+            utterThis.lang = 'es-PE';
+            utterThis.rate = 0.95;
+
+            utterThis.onstart = () => {
+                if (boton) {
+                    boton.classList.add('leyendo-activo');
+                    boton.setAttribute('aria-pressed', 'true');
+                    boton.innerHTML = '<i class="fa-solid fa-stop me-1" aria-hidden="true"></i> Detener lectura';
+                    botonLecturaActivo = boton;
+                }
+            };
+
+            utterThis.onend = () => {
+                restablecerBotonesLectura();
+            };
+
+            utterThis.onerror = () => {
+                restablecerBotonesLectura();
+            };
+
+            synth.speak(utterThis);
+        }
+
+        function escucharPagina() {
+            if (!('speechSynthesis' in window)) {
+                alert('Lo sentimos, su navegador no soporta la lectura de voz.');
+                return;
+            }
+
+            const synth = window.speechSynthesis;
+            const btn = document.getElementById('btnAudio');
+
+            if (leyendo) {
+                synth.cancel();
+                leyendo = false;
+                restablecerBotonesLectura();
+                if (btn) btn.innerHTML = '<i class="fa-solid fa-volume-high me-1" aria-hidden="true"></i> Escuchar página';
+                return;
+            }
+
+            // Cancelar lecturas por sección si hubiera alguna activa
+            synth.cancel();
+            restablecerBotonesLectura();
+
+            const textosALeer = [];
+            document.querySelectorAll('h1, h2, h3, h4, p, label, .badge-portal').forEach(el => {
+                if (el.offsetParent !== null && el.innerText.trim() !== '') {
+                    textosALeer.push(el.innerText.trim());
+                }
+            });
+
+            const textoCompleto = textosALeer.join('. ');
+            const utterThis = new SpeechSynthesisUtterance(textoCompleto);
+            utterThis.lang = 'es-PE';
+            utterThis.rate = 0.95;
+
+            utterThis.onstart = () => {
+                leyendo = true;
+                if (btn) btn.innerHTML = '<i class="fa-solid fa-stop me-1" aria-hidden="true"></i> Detener audio';
+            };
+
+            utterThis.onend = () => {
+                leyendo = false;
+                if (btn) btn.innerHTML = '<i class="fa-solid fa-volume-high me-1" aria-hidden="true"></i> Escuchar página';
+            };
+
+            utterThis.onerror = () => {
+                leyendo = false;
+                if (btn) btn.innerHTML = '<i class="fa-solid fa-volume-high me-1" aria-hidden="true"></i> Escuchar página';
+            };
+
+            synth.speak(utterThis);
+        }
+    </script>
 </body>
 </html>

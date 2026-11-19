@@ -11,6 +11,25 @@ const tabRegister = document.getElementById('tab-register');
 const panelLogin = document.getElementById('panel-login');
 const panelRegister = document.getElementById('panel-register');
 
+// Anunciar motivo de la sesión cerrada/expirada al llegar al login
+(function anunciarEstadoSesion() {
+    const params = new URLSearchParams(window.location.search);
+    const estado = params.get('sesion');
+    if (estado === 'cerrada') {
+        announce('Su sesión ha sido cerrada correctamente.', 'polite');
+    } else if (estado === 'expirada') {
+        announce('Su sesión ha expirado. Por favor, inicie sesión nuevamente.', 'assertive');
+    }
+    // Limpiar el parámetro ?sesion= de la URL sin recargar la página
+    if (estado) {
+        try {
+            const url = new URL(window.location.href);
+            url.searchParams.delete('sesion');
+            window.history.replaceState(null, '', url.toString());
+        } catch { /* Algunos entornos restringen el historial. */ }
+    }
+})();
+
 function limpiarSesionPreservandoAccesibilidad() {
     try {
         const prefs = JSON.parse(localStorage.getItem('minsa_a11y_preferences') || '{}');

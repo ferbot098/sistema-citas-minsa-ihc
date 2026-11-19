@@ -1,0 +1,420 @@
+:root {
+    --minsa-header-bg: #002B40;
+    --minsa-primary: #004060;
+    --bg-main: #F4F7F9;
+    --focus-ring: #0d6efd;
+}
+
+body {
+    background-color: var(--bg-main);
+    font-family: system-ui, -apple-system, sans-serif;
+    color: #2B3A42;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+:focus-visible,
+input:focus,
+select:focus,
+textarea:focus,
+button:focus {
+    outline: 3px solid var(--focus-ring) !important;
+    outline-offset: 2px !important;
+}
+
+.minsa-bar {
+    background-color: var(--minsa-header-bg);
+    color: white;
+    padding: 12px 40px;
+}
+
+.logo-m {
+    background-color: #002B40;
+    border: 2px solid #FFF;
+    color: white;
+    font-weight: bold;
+    font-size: 1.2rem;
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+}
+
+.card-reserva {
+    border-radius: 16px;
+    border: none;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    background: white;
+}
+
+.hospital-card {
+    border: 2px solid #E2E8F0;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: white;
+}
+
+.hospital-card:hover, .hospital-card.selected {
+    border-color: #004060;
+    background-color: #F8FAFC;
+}
+
+.especialidad-card {
+    border: 2px solid #E2E8F0;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: white;
+    text-align: center;
+    padding: 20px;
+}
+
+.especialidad-card:hover, .especialidad-card.selected {
+    border-color: #004060;
+    background-color: #F0F4F8;
+    box-shadow: 0 4px 12px rgba(0, 64, 96, 0.1);
+}
+
+.btn-minsa {
+    background-color: #004060;
+    color: white;
+    font-weight: 700;
+    padding: 12px;
+    border-radius: 8px;
+    border: none;
+    transition: background 0.2s;
+}
+
+.btn-minsa:hover {
+    background-color: #002B40;
+    color: white;
+}
+
+/* Calendario Grid */
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+}
+
+.calendar-day {
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 10px 4px;
+    text-align: center;
+    cursor: pointer;
+    background: #fff;
+    transition: all 0.2s;
+    min-height: 55px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.calendar-day:hover {
+    border-color: #004060;
+    background-color: #f8fafc;
+}
+
+.calendar-day.selected {
+    background-color: #002B40 !important;
+    color: white !important;
+    border-color: #002B40 !important;
+}
+
+.calendar-day.selected .text-muted,
+.calendar-day.selected small {
+    color: #e2e8f0 !important;
+}
+
+.calendar-day.is-disabled {
+    background: #f1f5f9;
+    color: #94a3b8;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.dot-available {
+    height: 6px;
+    width: 6px;
+    background-color: #059669;
+    border-radius: 50%;
+    display: inline-block;
+    margin-top: 4px;
+}
+
+.slot-btn {
+    border: 2px solid #E2E8F0;
+    border-radius: 8px;
+    padding: 10px 14px;
+    background: #fff;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+    text-align: center;
+}
+
+.slot-btn:hover {
+    border-color: #004060;
+    background-color: #f0f4f8;
+}
+
+.slot-btn.selected {
+    background-color: #002B40 !important;
+    color: white !important;
+    border-color: #002B40 !important;
+}
+
+/* ==========================================
+   REGLAS DE ACCESIBILIDAD (IHC - POUR)
+   ========================================== */
+
+/* 1. Modo de Texto Ampliado (Discapacidad visual / Adulto mayor) */
+body.texto-ampliado,
+body.large-text,
+body.texto-grande {
+    font-size: 1.3rem !important;
+}
+
+body.texto-ampliado h1, 
+body.texto-ampliado h2, 
+body.texto-ampliado h3, 
+body.texto-ampliado h4,
+body.large-text h1, 
+body.large-text h2, 
+body.large-text h3, 
+body.large-text h4 {
+    font-size: calc(1rem + 1.2vw) !important;
+}
+
+body.texto-ampliado .form-control, 
+body.texto-ampliado .form-select, 
+body.texto-ampliado .btn,
+body.texto-ampliado .card-reserva,
+body.large-text .form-control, 
+body.large-text .form-select, 
+body.large-text .btn,
+body.large-text .card-reserva {
+    font-size: 1.2rem !important;
+}
+
+body.texto-ampliado small, 
+body.texto-ampliado .small,
+body.large-text small, 
+body.large-text .small {
+    font-size: 1rem !important;
+}
+
+/* 2. Modo de Alto Contraste (Accesibilidad Visual) */
+body.alto-contraste,
+body.high-contrast {
+    background-color: #000000 !important;
+    color: #FFFF00 !important;
+}
+
+body.alto-contraste .card-reserva,
+body.alto-contraste .card,
+body.alto-contraste .modal-content,
+body.high-contrast .card-reserva,
+body.high-contrast .card,
+body.high-contrast .modal-content {
+    background-color: #000000 !important;
+    color: #FFFF00 !important;
+    border: 3px solid #FFFF00 !important;
+}
+
+body.alto-contraste .form-control,
+body.alto-contraste .form-select,
+body.high-contrast .form-control,
+body.high-contrast .form-select {
+    background-color: #000000 !important;
+    color: #FFFF00 !important;
+    border: 2px solid #FFFF00 !important;
+}
+
+body.alto-contraste a, 
+body.alto-contraste span, 
+body.alto-contraste p, 
+body.alto-contraste h1, 
+body.alto-contraste h2, 
+body.alto-contraste h3, 
+body.alto-contraste h4, 
+body.alto-contraste label,
+body.high-contrast a, 
+body.high-contrast span, 
+body.high-contrast p, 
+body.high-contrast h1, 
+body.high-contrast h2, 
+body.high-contrast h3, 
+body.high-contrast h4, 
+body.high-contrast label {
+    color: #FFFF00 !important;
+}
+
+body.alto-contraste .btn-primary,
+body.alto-contraste .minsa-bar,
+body.high-contrast .btn-primary,
+body.high-contrast .minsa-bar {
+    background-color: #000000 !important;
+    border: 3px solid #FFFF00 !important;
+    color: #FFFF00 !important;
+}
+
+body.alto-contraste .calendar-day,
+body.high-contrast .calendar-day {
+    background-color: #000 !important;
+    border-color: #FFFF00 !important;
+    color: #FFFF00 !important;
+}
+
+body.alto-contraste .calendar-day.selected,
+body.high-contrast .calendar-day.selected {
+    background-color: #FFFF00 !important;
+    color: #000 !important;
+}
+
+/* Área táctil mínima */
+@media (max-width: 600px) {
+    .btn,
+    .slot-btn,
+    .calendar-day,
+    .doctor-filter-card,
+    button {
+        min-height: 44px;
+        min-width: 44px;
+    }
+}
+
+/* ========================================= */
+/* BOTONES DE LECTURA POR SECCIÓN (WCAG AAA)  */
+/* ========================================= */
+.btn-escuchar-seccion {
+    font-size: 0.78rem;
+    padding: 4px 10px;
+    border-radius: 20px;
+    transition: all 0.2s ease-in-out;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-height: 32px;
+    white-space: nowrap;
+}
+
+.btn-escuchar-seccion:focus-visible {
+    outline: 3px solid #0d6efd !important;
+    outline-offset: 2px !important;
+}
+
+.btn-escuchar-seccion.leyendo-activo {
+    background-color: #dc3545 !important;
+    border-color: #dc3545 !important;
+    color: #ffffff !important;
+    animation: pulsoLecturaReserva 1.5s infinite;
+}
+
+@keyframes pulsoLecturaReserva {
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4); }
+    70% { transform: scale(1.03); box-shadow: 0 0 0 8px rgba(220, 53, 69, 0); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+}
+
+/* ========================================= */
+/* TARJETAS DE SELECCIÓN DE MÉDICOS (PASO 2) */
+/* ========================================= */
+.doctor-filter-card {
+    border: 2px solid #E2E8F0;
+    border-radius: 12px;
+    padding: 10px 12px;
+    background: #ffffff;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    height: 100%;
+}
+
+.doctor-filter-card:hover {
+    border-color: #004060;
+    background-color: #F8FAFC;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 43, 64, 0.08);
+}
+
+.doctor-filter-card.selected {
+    border-color: #002B40 !important;
+    background-color: #EBF3F8 !important;
+    box-shadow: 0 0 0 2px #002B40;
+}
+
+.doctor-avatar {
+    width: 38px;
+    height: 38px;
+    flex-shrink: 0;
+    font-size: 1rem;
+}
+
+/* ========================================= */
+/* ESTADOS DE HORARIOS (LIBRE / OCUPADO)     */
+/* ========================================= */
+.slot-btn.libre {
+    cursor: pointer;
+}
+
+.slot-btn.ocupado {
+    background: #f1f5f9 !important;
+    border-color: #cbd5e1 !important;
+    cursor: not-allowed;
+    opacity: 0.65;
+}
+
+.slot-btn.ocupado:hover {
+    border-color: #cbd5e1 !important;
+    background: #f1f5f9 !important;
+}
+
+/* ========================================= */
+/* ALTO CONTRASTE PARA NUEVOS ELEMENTOS      */
+/* ========================================= */
+body.alto-contraste .btn-escuchar-seccion,
+body.high-contrast .btn-escuchar-seccion {
+    background-color: #000000 !important;
+    color: #FFFF00 !important;
+    border: 2px solid #FFFF00 !important;
+}
+
+body.alto-contraste .btn-escuchar-seccion.leyendo-activo,
+body.high-contrast .btn-escuchar-seccion.leyendo-activo {
+    background-color: #FFFF00 !important;
+    color: #000000 !important;
+    border: 2px solid #FFFF00 !important;
+}
+
+body.alto-contraste .doctor-filter-card,
+body.high-contrast .doctor-filter-card {
+    background-color: #000000 !important;
+    color: #FFFF00 !important;
+    border: 2px solid #FFFF00 !important;
+}
+
+body.alto-contraste .doctor-filter-card.selected,
+body.high-contrast .doctor-filter-card.selected {
+    background-color: #FFFF00 !important;
+    color: #000000 !important;
+}
+
+body.alto-contraste .doctor-filter-card.selected *,
+body.high-contrast .doctor-filter-card.selected * {
+    color: #000000 !important;
+}
+
+body.alto-contraste .slot-btn.ocupado,
+body.high-contrast .slot-btn.ocupado {
+    background-color: #1a1a1a !important;
+    border: 1px dashed #666666 !important;
+    color: #888888 !important;
+}

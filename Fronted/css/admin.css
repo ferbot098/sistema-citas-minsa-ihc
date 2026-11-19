@@ -1,0 +1,207 @@
+:root {
+    --minsa-header-bg: #002B40;
+    --minsa-sidebar-bg: #003a5c;
+    --bg-main: #f8f9fa;
+    --focus-ring: #0d6efd;
+}
+
+body {
+    background-color: var(--bg-main);
+    font-family: system-ui, -apple-system, sans-serif;
+    color: #2B3A42;
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+:focus-visible,
+input:focus,
+select:focus,
+textarea:focus,
+button:focus {
+    outline: 3px solid var(--focus-ring) !important;
+    outline-offset: 2px !important;
+}
+
+.admin-header {
+    background-color: var(--minsa-header-bg);
+    color: white;
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 1050;
+    position: relative;
+}
+
+.sidebar {
+    background-color: var(--minsa-sidebar-bg);
+    color: white;
+    min-height: calc(100vh - 66px);
+    width: 250px;
+    position: fixed;
+    top: 66px;
+    left: 0;
+    transition: all 0.3s;
+    z-index: 1000;
+}
+
+.sidebar .nav-link {
+    color: rgba(255, 255, 255, 0.85);
+    padding: 15px 20px;
+    border-left: 4px solid transparent;
+    transition: all 0.2s;
+    font-weight: 500;
+}
+
+.sidebar .nav-link:hover,
+.sidebar .nav-link.active {
+    color: white;
+    background-color: rgba(255, 255, 255, 0.12);
+    border-left-color: #0d6efd;
+}
+
+.sidebar .nav-link i {
+    width: 25px;
+    text-align: center;
+    margin-right: 10px;
+}
+
+.main-content {
+    margin-left: 250px;
+    padding: 30px;
+    min-height: calc(100vh - 66px);
+}
+
+.admin-card {
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    padding: 25px;
+    margin-bottom: 25px;
+    border: none;
+}
+
+.content-section {
+    display: none;
+}
+
+.content-section.active {
+    display: block !important;
+}
+
+.btn-minsa {
+    background-color: #004060;
+    color: white;
+    font-weight: 700;
+    padding: 10px;
+    border-radius: 8px;
+    border: none;
+    transition: background 0.2s;
+}
+
+.btn-minsa:hover {
+    background-color: #002B40;
+    color: white;
+}
+
+/* Responsividad para móviles */
+@media (max-width: 992px) {
+    .sidebar {
+        position: static;
+        width: 100%;
+        min-height: auto;
+    }
+    .main-content {
+        margin-left: 0;
+        padding: 15px;
+    }
+}
+
+/* Modo Alto Contraste */
+body.high-contrast,
+body.alto-contraste {
+    background-color: #000 !important;
+    color: #fff !important;
+}
+
+body.high-contrast .admin-header,
+body.alto-contraste .admin-header {
+    background-color: #000 !important;
+    border-bottom: 2px solid #ffcc00 !important;
+}
+
+body.high-contrast .sidebar,
+body.alto-contraste .sidebar {
+    background-color: #121212 !important;
+    border-right: 2px solid #ffcc00 !important;
+}
+
+body.high-contrast .admin-card,
+body.alto-contraste .admin-card,
+body.high-contrast .card,
+body.alto-contraste .card {
+    background-color: #121212 !important;
+    color: #fff !important;
+    border: 2px solid #ffcc00 !important;
+}
+
+body.high-contrast .table,
+body.alto-contraste .table {
+    color: #fff !important;
+    background-color: #121212 !important;
+}
+
+body.high-contrast th,
+body.high-contrast td,
+body.alto-contraste th,
+body.alto-contraste td {
+    color: #fff !important;
+    border-color: #ffcc00 !important;
+}
+
+/* ========================================= */
+/* BOTONES DE LECTURA POR SECCIÓN (ADMIN)     */
+/* ========================================= */
+.btn-escuchar-seccion {
+    font-size: 0.78rem;
+    padding: 4px 10px;
+    border-radius: 20px;
+    transition: all 0.2s ease-in-out;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-height: 32px;
+    white-space: nowrap;
+}
+
+.btn-escuchar-seccion:focus-visible {
+    outline: 3px solid #0d6efd !important;
+    outline-offset: 2px !important;
+}
+
+.btn-escuchar-seccion.leyendo-activo {
+    background-color: #dc3545 !important;
+    border-color: #dc3545 !important;
+    color: #ffffff !important;
+    animation: pulsoLecturaAdmin 1.5s infinite;
+}
+
+@keyframes pulsoLecturaAdmin {
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4); }
+    70% { transform: scale(1.03); box-shadow: 0 0 0 8px rgba(220, 53, 69, 0); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+}
+
+body.high-contrast .btn-escuchar-seccion,
+body.alto-contraste .btn-escuchar-seccion {
+    background-color: #000000 !important;
+    color: #FFFF00 !important;
+    border: 2px solid #FFFF00 !important;
+}
+
+body.high-contrast .btn-escuchar-seccion.leyendo-activo,
+body.alto-contraste .btn-escuchar-seccion.leyendo-activo {
+    background-color: #FFFF00 !important;
+    color: #000000 !important;
+    border: 2px solid #FFFF00 !important;
+}
